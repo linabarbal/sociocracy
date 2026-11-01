@@ -1,4 +1,4 @@
-# Circle Commons
+# Sociocracy
 
 A free, open source workspace for organizations that use sociocracy. It is based on the practices in *Many Voices One Song: Shared Power with Sociocracy* by Ted J. Rau and Jerry Koch-Gonzalez.
 
