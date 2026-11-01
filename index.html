@@ -7,7 +7,7 @@
 <script src="config.js"></script>
 </head>
 <body>
-<title>Circle Commons</title>
+<title>Sociocracy</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -394,6 +394,9 @@ a.person{text-decoration:none;color:var(--ink)} a.person:hover{background:var(--
 .logo-prev{width:72px;height:72px;border:1px solid var(--line);border-radius:12px;display:grid;place-items:center;flex:none;background:var(--surface)}
 .logo-prev img{max-width:60px;max-height:60px;object-fit:contain}
 .logo-prev svg{width:44px;height:44px}
+.mpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;max-height:240px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.mpick .mp{gap:8px;padding:3px 0;min-width:0}
+.mpick .mp span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .photo-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .gate{min-height:100%;display:flex;align-items:center;justify-content:center;padding-block:40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));background:var(--bg)}
 .gate-card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
@@ -403,6 +406,7 @@ a.person{text-decoration:none;color:var(--ink)} a.person:hover{background:var(--
 .gate-card .brand b{font-size:17px;display:block}
 .gate-card input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;width:100%;font-size:16px}
 .gate-msg{color:var(--bad);font-size:14px}
+.gate-detail{display:inline-block;margin-top:6px;color:var(--muted);font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
 .chk.vis{align-items:flex-start;gap:10px}
 .chk.vis input{margin-top:5px}
 .linkbtn{border:0;background:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer;font-size:12.5px}
@@ -445,7 +449,7 @@ mark{background:color-mix(in srgb,var(--warn) 28%,transparent)}
   <aside class="rail">
     <div class="brand">
       <span id="brand-logo" class="brand-logo"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="9" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="8" cy="21" r="5" fill="none" stroke="var(--deleg)" stroke-width="2"/><circle cx="22" cy="21" r="5" fill="none" stroke="var(--info)" stroke-width="2"/></svg></span>
-      <div><b id="org-name">Circle Commons</b><span id="org-sub">Sociocracy workspace</span></div>
+      <div><b id="org-name">Sociocracy</b><span id="org-sub">Shared governance workspace</span></div>
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="rail-sec" id="rail-circles"></div>
@@ -599,13 +603,13 @@ function route(){ return (location.hash || '#overview').slice(1); }
 function render(){
   document.body.classList.toggle('ro', !canWrite);
   const org = S.org.main || {};
-  $('#org-name').textContent = org.name || 'Circle Commons';
-  $('#org-sub').textContent = org.subtitle ?? 'Sociocracy workspace';
+  $('#org-name').textContent = org.name || 'Sociocracy';
+  $('#org-sub').textContent = org.subtitle ?? 'Shared governance workspace';
   $('#org-sub').hidden = org.subtitle === '';
   const lg = $('#brand-logo');
   if(org.logo){ if(lg.dataset.src !== org.logo){ lg.innerHTML = `<img src="${esc(org.logo)}" alt="">`; lg.dataset.src = org.logo; } }
   else if(lg.dataset.src){ lg.innerHTML = DEFAULT_LOGO; lg.dataset.src = ''; }
-  document.title = org.name || 'Circle Commons';
+  document.title = org.name || 'Sociocracy';
   const r = route();
   const navItems = [['overview','Home'],['map','Circle map'],['circles','Circles'],['people','People'],['work','Work'],['wiki','Wiki'],['search','Who decides?']];
   if(mode === 'supabase' && isAdmin && !navItems.some(n => n[0]==='access')) navItems.push(['access','Access']);
@@ -1012,7 +1016,7 @@ function circleForm(c){
   ${fArea('f-domain','Domain',c.domain,{ph:'What this circle decides on its own',rows:3})}
   ${fArea('f-desc','More about this circle',c.description,{ph:'Background, how to reach the circle, links',rows:2})}
   ${fText('f-rhythm','Meeting rhythm',c.rhythm,{ph:'e.g. Every other Tuesday, 18:00'})}
-  ${fArea('f-members','Members',(c.members||[]).join('\n'),{rows:5,hint:'One name per line.'})}
+  ${memberPicker(c.members)}
   <fieldset class="fs"><legend>Roles</legend><p class="hint">Leader and delegate apply when the circle has a parent circle.</p>${ROLE_KEYS.map(roleBlock).join('')}
     <div class="rep" id="xroles">${(c.extraRoles||[]).map(xRoleRow).join('')}</div>
     <div><button class="btn sm" data-act="addXRole" type="button">Add another role</button></div>
@@ -1030,7 +1034,7 @@ function editCircle(id, parentId){
     const roles = {};
     ROLE_KEYS.forEach(([k]) => { roles[k] = {holder:gv('r-'+k), selected:gd('rs-'+k), termEnd:gd('rt-'+k)}; });
     const extraRoles = [...document.querySelectorAll('#xroles .xrole')].map(row => { const k=row.querySelector('input').id.slice(3); return {title:gv('xt-'+k), holder:gv('xh-'+k), selected:gd('xs-'+k), termEnd:gd('xe-'+k), description:gv('xd-'+k)}; }).filter(r=>r.title);
-    const obj = {...c, name, type:gv('f-type'), parentId:gv('f-parent'), aim:gv('f-aim'), domain:gv('f-domain'), description:gv('f-desc'), rhythm:gv('f-rhythm'), members:lines($('#f-members').value), roles, extraRoles, updated:todayISO()};
+    const obj = {...c, name, type:gv('f-type'), parentId:gv('f-parent'), aim:gv('f-aim'), domain:gv('f-domain'), description:gv('f-desc'), rhythm:gv('f-rhythm'), members:pickedMembers(), roles, extraRoles, updated:todayISO()};
     obj.example = c.example || false;
     const ok = await put('circles', obj); if(ok){ toast(id?'Circle saved':'Circle created'); if(!id) location.hash = 'circle-'+obj.id; }
     return ok;
@@ -1169,14 +1173,14 @@ function editNotice(id){
 }
 
 /* ---------- Settings / data ---------- */
-function exportJSON(){ const out = {format:'circle-commons', version:1, exported:todayISO()}; COLS.forEach(c=>out[c]=vals(c)); return JSON.stringify(out, null, 2); }
+function exportJSON(){ const out = {format:'sociocracy', version:1, exported:todayISO()}; COLS.forEach(c=>out[c]=vals(c)); return JSON.stringify(out, null, 2); }
 function settings(){
   const org = S.org.main || {};
   const body = `
   <fieldset class="fs"><legend>Name and logo</legend>
     <div class="photo-row"><span id="lg-wrap" class="logo-prev">${org.logo ? `<img src="${esc(org.logo)}" alt="">` : DEFAULT_LOGO}</span>
       <div class="f"><span>Logo</span><input type="file" id="lg-file" accept="image/*"><small>A square image works best. It is resized so it loads fast.</small>${org.logo?'<button class="btn sm ghost" data-act="removeLogo" type="button">Use the default logo</button>':''}</div></div>
-    <div class="grid2">${fText('s-name','Name',org.name,{ph:'Circle Commons',hint:'Shown at the top of the menu and in the browser tab.'})}${fText('s-sub','Line under the name',org.subtitle ?? 'Sociocracy workspace',{hint:'Leave empty to hide it.'})}</div>
+    <div class="grid2">${fText('s-name','Name',org.name,{ph:'Sociocracy',hint:'Shown at the top of the menu and in the browser tab.'})}${fText('s-sub','Line under the name',org.subtitle ?? 'Shared governance workspace',{hint:'Leave empty to hide it.'})}</div>
     ${fText('s-tag','Short description on Home',org.tagline)}
     ${mode==='supabase' && !isAdmin ? '<p class="hint">Only admins can change the name and logo.</p>' : ''}
   </fieldset>
@@ -1205,7 +1209,7 @@ function settings(){
 }
 async function importData(){
   let d; try{ d = JSON.parse($('#s-json').value); }catch(e){ toast('That is not valid exported data.'); return; }
-  if(!d || d.format!=='circle-commons'){ toast('That is not Circle Commons data.'); return; }
+  if(!d || !['sociocracy','circle-commons'].includes(d.format)){ toast('That is not exported Sociocracy data.'); return; }
   let n = 0; for(const c of COLS){ for(const doc of (d[c]||[])){ if(doc && doc.id){ await put(c, doc); n++; } } }
   toast(`Imported ${n} records`); closeModal();
 }
@@ -1690,10 +1694,10 @@ const ROLE_INFO = {
   viewer:['Viewer','Read everything except contact details. Cannot change anything.']
 };
 function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
-function appName(){ return (S.org.main||{}).name || (window.CC_CONFIG||{}).appName || 'Circle Commons'; }
+function appName(){ return (S.org.main||{}).name || (window.CC_CONFIG||{}).appName || 'Sociocracy'; }
 function showGate(inner){
   const g = $('#gate');
-  g.innerHTML = `<div class="gate-card"><div class="brand"><span class="brand-logo">${DEFAULT_LOGO}</span><div><b>${esc(appName())}</b><span>Sociocracy workspace</span></div></div>${inner}</div>`;
+  g.innerHTML = `<div class="gate-card"><div class="brand"><span class="brand-logo">${DEFAULT_LOGO}</span><div><b>${esc(appName())}</b><span>Shared governance workspace</span></div></div>${inner}</div>`;
   g.hidden = false; $('#app').hidden = true;
 }
 function hideGate(){ $('#gate').hidden = true; $('#app').hidden = false; }
@@ -1745,6 +1749,8 @@ async function afterSignIn(session){
   isAdmin = me.role === 'admin'; canWrite = me.role !== 'viewer';
   hideGate(); mode = 'loading'; render();
   await loadAllDocs(); subscribeDocs();
+  if(me.name) await ensurePerson(me.name, me.email);
+  else if(isAdmin) memberNameModal(me.email, '', 'Add the name others will see. You will appear in People and can be added to circles.');
 }
 async function loadAllDocs(){
   const all = []; let from = 0;
@@ -1791,20 +1797,52 @@ function vAccess(){
     <form class="grid3" data-form="invite" style="align-items:end">
       <label class="f"><span>Email</span><input id="inv-email" type="email" required placeholder="name@example.org" autocomplete="off"></label>
       <label class="f"><span>Access</span><select id="inv-role">${Object.entries(ROLE_INFO).map(([k,[l]]) => `<option value="${k}" ${k==='member'?'selected':''}>${l}</option>`).join('')}</select></label>
-      <label class="f"><span>Their name in People (optional)</span><input id="inv-person" list="dl-people" autocomplete="off"></label>
+      <label class="f"><span>Name</span><input id="inv-person" list="dl-people" required autocomplete="off" placeholder="As others will see it"></label>
       <div><button class="btn pri" type="submit">Invite</button></div>
     </form>
     ${lastInvite ? `<div class="invite-msg"><span class="eyebrow">Send them this message</span><p id="inv-text">${esc(lastInvite)}</p><div><button class="btn sm" data-act="copyText" data-t="${esc(lastInvite)}" type="button">Copy message</button></div></div>` : ''}
   </section>
   <section class="panel"><div class="ph"><h2>People with access</h2><span class="bl-meta">${counts.admin} admin${counts.admin===1?'':'s'} · ${counts.member} member${counts.member===1?'':'s'} · ${counts.viewer} viewer${counts.viewer===1?'':'s'}</span></div>
-    <div class="tscroll"><table><thead><tr><th>Email</th><th>Name in People</th><th>Access</th><th></th></tr></thead><tbody>
-      ${membersList.map(m => `<tr><td class="mono">${esc(m.email)}${m.email===me.email?' <span class="chip">You</span>':''}</td><td>${m.person_name ? person(m.person_name) : '<span class="muted">—</span>'}</td>
+    <div class="tscroll"><table><thead><tr><th>Email</th><th>Name</th><th>Access</th><th></th></tr></thead><tbody>
+      ${membersList.map(m => `<tr><td class="mono">${esc(m.email)}${m.email===me.email?' <span class="chip">You</span>':''}</td><td>${m.person_name ? `${person(m.person_name)} <button class="btn sm ghost" data-act="memberName" data-email="${esc(m.email)}" data-name="${esc(m.person_name)}" type="button">Change</button>` : `<button class="btn sm" data-act="memberName" data-email="${esc(m.email)}" type="button">Add name</button>`}</td>
         <td><select class="sel mrole" data-email="${esc(m.email)}" aria-label="Access for ${esc(m.email)}">${Object.entries(ROLE_INFO).map(([k,[l]]) => `<option value="${k}" ${k===m.role?'selected':''}>${l}</option>`).join('')}</select></td>
         <td><button class="btn sm ghost danger" data-act="memberRemove" data-email="${esc(m.email)}" type="button">Remove</button></td></tr>`).join('')}
     </tbody></table></div>
   </section>
   <section class="panel"><h2>What each level can do</h2><div class="tscroll"><table><tbody>${Object.values(ROLE_INFO).map(([l,d]) => `<tr><td><b>${l}</b></td><td>${d}</td></tr>`).join('')}</tbody></table></div>
     <p class="bl-meta">A workspace always keeps at least one admin. These rules are enforced by the database, not only by this page.</p></section>`;
+}
+
+
+/* ---------- Member picker: people come from the People directory ---------- */
+function memberPicker(selected){
+  const all = allPeopleNames(); const sel = new Set(selected || []);
+  return `<div class="f"><span>Members</span><small>Tick the people in this circle. Everyone with an account, and everyone in People, is listed.</small>
+    ${all.length > 8 ? '<input id="mp-filter" class="sel" placeholder="Filter by name" autocomplete="off" aria-label="Filter people">' : ''}
+    <div class="mpick" id="mpick">${all.map(n => `<label class="chk mp" data-n="${esc(n.toLowerCase())}"><input type="checkbox" class="mp-cb" value="${esc(n)}" ${sel.has(n)?'checked':''}>${avatar(n)}<span>${esc(n)}</span></label>`).join('') || '<span class="muted">Nobody in People yet. Add names below.</span>'}</div>
+    ${fText('f-members-new','Add someone who is not listed','',{ph:'Names separated by commas',hint:'They also appear in People.'})}</div>`;
+}
+function pickedMembers(){
+  const picked = [...document.querySelectorAll('.mp-cb:checked')].map(x => x.value);
+  const extra = gv('f-members-new').split(',').map(x => x.trim()).filter(Boolean);
+  return [...new Set([...picked, ...extra])];
+}
+async function ensurePerson(name, email){
+  name = String(name||'').trim(); if(!name || !canWrite) return null;
+  let rec = personRec(name);
+  if(!rec){ rec = {id:uid('p'), name, joined:todayISO(), updated:todayISO()}; if(!(await put('people', rec))) return null; }
+  if(email && !(S.contacts[rec.id]?.email)) await put('contacts', {...(S.contacts[rec.id]||{}), id:rec.id, email});
+  return rec;
+}
+function memberNameModal(email, current, intro){
+  openModal(intro ? 'What is your name?' : 'Name in People', `${intro ? `<p class="muted" style="font-size:14px">${intro}</p>` : ''}${fText('mn-name','Name',current||'',{list:1,ph:'e.g. Lina Barbal',hint:'Shown in People, circles and tasks. If this person is already in People, pick their name.'})}`, async () => {
+    const name = gv('mn-name'); if(!name){ toast('Add a name.'); return false; }
+    const {error} = await sb.from('members').update({person_name:name}).eq('email', email);
+    if(error){ toast('Could not save the name.'); return false; }
+    await ensurePerson(name, email);
+    if(email === me.email) me.name = name;
+    toast('Name saved'); if(membersList !== null) fetchMembers(); render(); return true;
+  }, {saveLabel:'Save name'});
 }
 
 /* ============ People directory ============ */
@@ -2208,6 +2246,7 @@ const ACTS = {
   showSignIn: () => showSignIn(''),
   backToGuest: () => hideGate(),
   removeLogo: (d, el) => { curLogo = ''; $('#lg-wrap').innerHTML = DEFAULT_LOGO; el.remove(); },
+  memberName: d => memberNameModal(d.email, d.name || ''),
   signOut: async () => { try{ await sb.auth.signOut(); }catch(e){ location.reload(); } },
   memberRemove: async (d, el) => {
     if(!el.dataset.sure){ el.dataset.sure = '1'; el.textContent = 'Click again to remove'; setTimeout(() => { if(el.isConnected){ delete el.dataset.sure; el.textContent = 'Remove'; } }, 4000); return; }
@@ -2298,13 +2337,15 @@ document.addEventListener('submit', async e => {
   if(si){ e.preventDefault(); const email = $('#si-email').value.trim().toLowerCase(); if(!email) return; const btn = si.querySelector('button'); btn.disabled = true;
     const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.origin + location.pathname}});
     btn.disabled = false;
-    if(error) showSignIn(esc(/rate|limit|seconds/i.test(error.message||'') ? 'Too many sign-in emails were sent just now. Wait a minute and try again.' : 'The sign-in email could not be sent. Check the address and try again. If it keeps failing, the workspace email settings may need attention.'));
+    if(error) showSignIn(esc(/rate|limit|seconds/i.test(error.message||'') ? 'Too many sign-in emails were sent just now. Wait a minute and try again.' : /signup|sign up|not allowed/i.test(error.message||'') ? 'New sign-ins are turned off in Supabase. An admin needs to allow new users to sign up (Authentication, Sign In / Providers).' : 'The sign-in email could not be sent. Check the address and try again. If it keeps failing, the workspace email settings may need attention.') + `<br><span class="gate-detail">Details for your admin: ${esc(error.message || 'unknown error')}${error.status ? ' (' + esc(String(error.status)) + ')' : ''}</span>`);
     else showGate(`<h1>Check your email</h1><p>We sent a sign-in link to <b>${esc(email)}</b>. Open it on this device to sign in. It can take a minute to arrive; check your spam folder too.</p><button class="btn" data-act="backToSignIn" type="button">Use a different email</button>`);
     return; }
   const inv = e.target.closest('[data-form="invite"]');
   if(inv){ e.preventDefault(); const email = $('#inv-email').value.trim().toLowerCase(); if(!email) return;
-    const {error} = await sb.from('members').insert({email, role:$('#inv-role').value, person_name:$('#inv-person').value.trim() || null});
+    const pname = $('#inv-person').value.trim(); if(!pname){ toast('Add their name.'); return; }
+    const {error} = await sb.from('members').insert({email, role:$('#inv-role').value, person_name:pname});
     if(error){ toast(error.code === '23505' ? 'This email already has access.' : 'Could not invite. Try again.'); return; }
+    await ensurePerson(pname, email);
     lastInvite = inviteText(email); toast('Invited ' + email); fetchMembers(); return; }
 });
 document.addEventListener('submit', e => {
@@ -2312,6 +2353,7 @@ document.addEventListener('submit', e => {
   searchQ = (f.querySelector('input').value || '').trim(); location.hash = 'search';
 });
 document.addEventListener('input', e => {
+  if(e.target.id === 'mp-filter'){ const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#mpick .mp').forEach(l => l.hidden = q && !l.dataset.n.includes(q)); return; }
   if(e.target.id === 'pq'){ peopleQ = e.target.value; const r = $('#people-list'); if(r) r.innerHTML = peopleList(); return; }
   if(e.target.id === 'wq'){ wikiQ = e.target.value; const r = $('#wiki-list'); if(r) r.innerHTML = wikiLists(); return; }
   if(e.target.id === 'q'){ searchQ = e.target.value; const r = $('#results'); if(r) r.innerHTML = searchResults(); return; }
