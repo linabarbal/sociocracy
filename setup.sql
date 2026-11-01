@@ -1,8 +1,8 @@
 -- ============================================================
--- Circle Commons: database setup for Supabase
+-- Sociocracy: database setup for Supabase
 -- ============================================================
 -- What this does:
---   * creates the tables Circle Commons needs
+--   * creates the tables Sociocracy needs
 --   * turns on rules so only invited people can see anything
 --   * makes you the first admin
 --
