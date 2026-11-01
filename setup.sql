@@ -61,6 +61,67 @@ language sql stable security definer set search_path = public as $$
   end
 $$;
 
+-- The email of whoever is signed in
+create or replace function public.my_email() returns text
+language sql stable as $$
+  select lower(coalesce(auth.jwt() ->> 'email', ''))
+$$;
+
+-- The name an admin gave this account in People (when invited)
+create or replace function public.my_person_name() returns text
+language sql stable security definer set search_path = public as $$
+  select lower(trim(coalesce(person_name, ''))) from public.members
+  where email = public.my_email()
+$$;
+
+-- Is this People profile linked to an account? Is it mine?
+create or replace function public.person_owner(pid text) returns text
+language sql stable security definer set search_path = public as $$
+  select lower(coalesce(data ->> 'ownerEmail', '')) from public.docs
+  where col = 'people' and id = pid
+$$;
+
+create or replace function public.owns_person(pid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.my_email() <> '' and coalesce(public.person_owner(pid), '') = public.my_email()
+$$;
+
+-- Who may add or change a record.
+--   Admins: everything.  Members: everything except settings (org)
+--   and other people's linked profiles.  Everyone invited: their own
+--   profile and their own contact details.
+create or replace function public.can_write(target_col text, target_id text, target_data jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case
+    when public.my_role() = 'admin' then true
+    when public.my_role() is null then false
+    when target_col = 'org' then false
+    when target_col = 'people' then
+      lower(coalesce(target_data ->> 'ownerEmail', '')) = public.my_email()
+      or (public.my_role() = 'member' and coalesce(target_data ->> 'ownerEmail', '') = '')
+      or (coalesce(target_data ->> 'ownerEmail', '') = ''
+          and lower(trim(coalesce(target_data ->> 'name', ''))) = public.my_person_name()
+          and public.my_person_name() <> '')
+    when target_col = 'contacts' then
+      public.owns_person(target_id)
+      or (public.my_role() = 'member' and coalesce(public.person_owner(target_id), '') = '')
+    else public.my_role() = 'member'
+  end
+$$;
+
+-- Who may delete a record. Linked profiles: admins only.
+create or replace function public.can_delete(target_col text, target_id text, target_data jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case
+    when public.my_role() = 'admin' then true
+    when public.my_role() <> 'member' or public.my_role() is null then false
+    when target_col = 'org' then false
+    when target_col = 'people' then coalesce(target_data ->> 'ownerEmail', '') = ''
+    when target_col = 'contacts' then coalesce(public.person_owner(target_id), '') = ''
+    else true
+  end
+$$;
+
 alter table public.members enable row level security;
 alter table public.docs    enable row level security;
 alter table public.settings enable row level security;
@@ -78,7 +139,7 @@ drop policy if exists "Invited people read data" on public.docs;
 create policy "Invited people read data" on public.docs
   for select to authenticated
   using (public.my_role() in ('admin', 'member')
-         or (public.my_role() = 'viewer' and col <> 'contacts'));
+         or (public.my_role() = 'viewer' and (col <> 'contacts' or public.owns_person(id))));
 
 drop policy if exists "Anyone reads data when the workspace is public" on public.docs;
 create policy "Anyone reads data when the workspace is public" on public.docs
@@ -96,15 +157,16 @@ create policy "Admins change the settings" on public.settings
 
 drop policy if exists "Editors add data" on public.docs;
 create policy "Editors add data" on public.docs
-  for insert to authenticated with check (public.can_edit(col));
+  for insert to authenticated with check (public.can_write(col, id, data));
 
 drop policy if exists "Editors change data" on public.docs;
 create policy "Editors change data" on public.docs
-  for update to authenticated using (public.can_edit(col)) with check (public.can_edit(col));
+  for update to authenticated
+  using (public.can_write(col, id, data)) with check (public.can_write(col, id, data));
 
 drop policy if exists "Editors delete data" on public.docs;
 create policy "Editors delete data" on public.docs
-  for delete to authenticated using (public.can_edit(col));
+  for delete to authenticated using (public.can_delete(col, id, data));
 
 -- A workspace always keeps at least one admin
 create or replace function public.keep_an_admin() returns trigger
@@ -118,6 +180,42 @@ end $$;
 drop trigger if exists keep_an_admin on public.members;
 create trigger keep_an_admin after update or delete on public.members
   for each statement execute function public.keep_an_admin();
+
+-- Only admins link a profile to an account. Anyone may claim the one
+-- unlinked profile whose name an admin gave them when inviting them.
+create or replace function public.guard_people() returns trigger
+language plpgsql set search_path = public as $$
+declare
+  old_owner text := '';
+  new_owner text := lower(coalesce(new.data ->> 'ownerEmail', ''));
+begin
+  if new.col <> 'people' or current_user not in ('authenticated', 'anon')
+     or public.my_role() = 'admin' then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    -- An upsert of an existing row is checked again as an update
+    if exists (select 1 from public.docs where col = new.col and id = new.id) then
+      return new;
+    end if;
+  else
+    old_owner := lower(coalesce(old.data ->> 'ownerEmail', ''));
+  end if;
+  if new_owner = old_owner then
+    return new;
+  end if;
+  if old_owner = '' and new_owner = public.my_email()
+     and (tg_op = 'INSERT' or lower(trim(coalesce(old.data ->> 'name', ''))) = public.my_person_name())
+     and not exists (select 1 from public.docs
+                     where col = 'people' and id <> new.id
+                       and lower(coalesce(data ->> 'ownerEmail', '')) = new_owner) then
+    return new;
+  end if;
+  raise exception 'Only an admin can link a profile to an account.' using errcode = '42501';
+end $$;
+drop trigger if exists guard_people on public.docs;
+create trigger guard_people before insert or update on public.docs
+  for each row execute function public.guard_people();
 
 -- Record when and by whom a record last changed
 create or replace function public.touch_doc() returns trigger

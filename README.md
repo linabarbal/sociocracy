@@ -36,10 +36,12 @@ A free, open source workspace for organizations that use sociocracy. It is based
 | Level | Can do |
 | --- | --- |
 | Admin | Everything, plus invite people, change access, and change the name and logo |
-| Member | Read everything and create or edit content |
-| Viewer | Read everything except contact details |
+| Member | Read everything, see emergency contacts, and create or edit content |
+| Viewer | Read everything except contact details, and edit their own profile |
 
 The rules are enforced by the database (row level security), not only by the page. A workspace always keeps at least one admin.
+
+**Profiles:** each account is linked to one profile in People. Only that person or an admin can edit a linked profile. Emergency contacts are visible only to members and admins.
 
 **Private or public:** a new workspace is private, so nothing is visible without signing in. An admin can switch it to **Public, read-only** in Data & settings: anyone with the link can then read everything except contact details, and only invited people can sign in to edit.
 

@@ -397,6 +397,9 @@ a.person{text-decoration:none;color:var(--ink)} a.person:hover{background:var(--
 .mpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;max-height:240px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
 .mpick .mp{gap:8px;padding:3px 0;min-width:0}
 .mpick .mp span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pron{font-size:12.5px;color:var(--muted);font-weight:400}
+.pron-h{font-size:.5em;font-weight:500;color:var(--muted);letter-spacing:0;vertical-align:middle}
+.side-card.ec{border-color:var(--warn)}
 .photo-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .gate{min-height:100%;display:flex;align-items:center;justify-content:center;padding-block:40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));background:var(--bg)}
 .gate-card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
@@ -442,6 +445,28 @@ h1{font-weight:700;letter-spacing:-.03em;font-size:32px} h2{font-weight:700;font
 .bigsearch,.ask input{border-color:var(--line)}
 mark{background:color-mix(in srgb,var(--warn) 28%,transparent)}
 @media (max-width: 860px){ h1{font-size:25px} .nav a.on{box-shadow:inset 0 -2px 0 var(--ink)} }
+
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dec{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:16px 18px;border:2px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--ink)}
+.dec b{font-size:18px}.dec span{font-size:13px;color:var(--muted)}
+.dec.ok:hover,.dec.ok.on{border-color:var(--ok)}.dec.bad:hover,.dec.bad.on{border-color:var(--bad)}
+.dec.ok.on{background:color-mix(in srgb,var(--ok) 10%,var(--surface))}.dec.bad.on{background:color-mix(in srgb,var(--bad) 10%,var(--surface))}
+.dec.on b::before{content:"✓ "}
+.dec-panel{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--sunk)}
+.affgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 14px;margin-top:4px}
+select.bad,textarea.bad{border-color:var(--bad)}
+@media (max-width:600px){.decide{grid-template-columns:1fr}}
+
+.plus{width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 18px/1 var(--f-body,inherit);cursor:pointer;padding:0}
+.plus:hover{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.pgroup .ph{align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+.bp{border:1px solid var(--ink)!important;border-radius:var(--r);padding:18px 20px!important;gap:14px;display:flex;flex-direction:column}
+.bp-head h2{margin:2px 0 4px}.bp-head p{margin:0;font-size:14px;max-width:70ch}
+.bp .sp{flex:1}
+.obj-open{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid var(--bad);border-radius:var(--r);font-size:14px}
+.dec:disabled{opacity:.5;cursor:not-allowed}
+.track a{color:inherit;text-decoration:none}.track a:hover{text-decoration:underline}
 </style>
 
 <div id="gate" class="gate" hidden></div>
@@ -613,12 +638,12 @@ function render(){
   const r = route();
   const navItems = [['overview','Home'],['map','Circle map'],['circles','Circles'],['people','People'],['work','Work'],['wiki','Wiki'],['search','Who decides?']];
   if(mode === 'supabase' && isAdmin && !navItems.some(n => n[0]==='access')) navItems.push(['access','Access']);
-  const cur = /^(circle|meeting|proposal|selection)-/.test(r) ? 'circles' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
+  const cur = (/^(circle|meeting|proposal|selection)-/.test(r) || r === 'proposals') ? 'circles' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
   $('#nav').innerHTML = navItems.map(([h,l]) => `<a href="#${h}" class="${cur===h?'on':''}">${l}</a>`).join('');
   const oc = ordered();
   $('#rail-circles').innerHTML = oc.length ? `<div class="eyebrow">Circles</div>` + oc.map(([c,d]) => `<a class="nav-c" href="#circle-${c.id}" style="--d:${Math.min(d,4)};display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px" ${r.startsWith('circle-'+c.id)?'aria-current="page"':''}><i class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--t-${c.type||'department'});flex:none"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${r.startsWith('circle-'+c.id)?'font-weight:700':''}">${esc(c.name)}</span></a>`).join('') : '';
   $('#mode').className = 'mode ' + mode;
-  $('#mode').innerHTML = mode==='supabase' && me.role==='guest' ? `<i></i><span>Viewing as a guest${me.email?` (${esc(me.email)})`:''}<br><button class="linkbtn" data-act="${me.email?'signOut':'showSignIn'}" type="button">${me.email?'Sign out':'Sign in to edit'}</button></span>` : mode==='supabase' ? `<i></i><span>Signed in as ${esc(me.name || me.email)} · ${ROLE_INFO[me.role]?.[0]||''}<br><button class="linkbtn" data-act="signOut" type="button">Sign out</button></span>` : `<i></i><span>${mode==='shared' ? (canWrite ? 'Shared with everyone who opens this page' : 'Shared · you have view-only access') : mode==='local' ? 'Saved in this browser only' : 'Connecting…'}</span>`;
+  $('#mode').innerHTML = mode==='supabase' && me.role==='guest' ? `<i></i><span>Viewing as a guest${me.email?` (${esc(me.email)})`:''}<br><button class="linkbtn" data-act="${me.email?'signOut':'showSignIn'}" type="button">${me.email?'Sign out':'Sign in to edit'}</button></span>` : mode==='supabase' ? `<i></i><span>Signed in as ${esc(me.name || me.email)} · ${ROLE_INFO[me.role]?.[0]||''}<br>${personByEmail(me.email) ? `<a class="linkbtn" href="#person-${personByEmail(me.email).id}">My profile</a> · ` : ''}<button class="linkbtn" data-act="signOut" type="button">Sign out</button></span>` : `<i></i><span>${mode==='shared' ? (canWrite ? 'Shared with everyone who opens this page' : 'Shared · you have view-only access') : mode==='local' ? 'Saved in this browser only' : 'Connecting…'}</span>`;
   $('#dl-people').innerHTML = people().map(p => `<option value="${esc(p)}">`).join('');
 
   let html = '';
@@ -631,6 +656,7 @@ function render(){
   else if((m = r.match(/^meeting-([a-z0-9]+)$/))) html = vMeeting(m[1]);
   else if((m = r.match(/^proposal-([a-z0-9]+)$/))) html = vProposal(m[1]);
   else if((m = r.match(/^selection-([a-z0-9]+)$/))) html = vSelection(m[1]);
+  else if(r === 'proposals') html = vProposals();
   else if(r === 'search') html = vSearch();
   else if(r === 'work') html = vWork();
   else if(r === 'people') html = vPeople();
@@ -694,7 +720,7 @@ function vOverview(){
   ${welcome}
   ${circles.length ? `<div class="stats mini">
     <a class="stat" href="#circles"><b>${circles.length}</b><span>Circles</span></a>
-    <a class="stat" href="#circles"><b>${openProps.length}</b><span>Proposals in progress</span></a>
+    <a class="stat" href="#proposals"><b>${openProps.length}</b><span>Proposals in progress</span></a>
     <a class="stat ${gaps.length?'alert':''}" href="#map"><b>${gaps.length}</b><span>Roles to fill or reselect</span></a>
   </div>` : ''}
   ${circles.length ? `<form class="ask" data-form="ask"><input id="ov-q" placeholder="Who decides…? Search domains, policies, the wiki and decisions" aria-label="Search domains, policies, the wiki and decisions" autocomplete="off"><button class="btn" type="submit">Search</button></form>` : ''}
@@ -941,17 +967,20 @@ function vProposal(id){
   const order = ['understand','explore','shape','questions','reactions','consent'];
   const labels = ['Understand the need','Explore dimensions','Shape the proposal','Clarifying questions','Quick reactions','Consent round'];
   let reached = 0;
-  if(p.understanding||p.driver) reached = 1; if(p.dimensions) reached = 2; if(p.proposal) reached = 3; if(p.questions) reached = 4; if(p.reactions) reached = 5; if(p.stage==='consented'||p.stage==='objection'||p.stage==='notconsented') reached = 6;
+  reached = propReached(p);
   const objs = p.objections || [];
   const sec = (t, v, hint) => `<div class="def"><span class="eyebrow">${t}</span>${v?`<div class="txt">${esc(v)}</div>`:`<div class="muted">${hint}</div>`}</div>`;
   return `
   <div class="head"><div class="t"><span class="eyebrow">Proposal · ${c?`<a href="#circle-${c.id}-proposals">${esc(c.name)}</a>`:'Deleted circle'}</span><h1>${esc(p.title)}</h1>
     <div class="row">${stChip(STAGES[p.stage]?.label||p.stage, STAGES[p.stage]?.cls||'mute')}${p.author?`<span class="muted" style="font-size:13.5px">Brought by ${esc(p.author)}</span>`:''}${p.decided?`<span class="muted" style="font-size:13.5px">Consented <span class="mono">${mdy(p.decided)}</span></span>`:''}${p.reviewDate?`<span class="muted" style="font-size:13.5px">Review by <span class="mono">${mdy(p.reviewDate)}</span></span>`:''}</div></div>
-    <div class="row">${p.stage==='consented' ? (() => { const wp = vals('wiki').find(w => w.proposalId === p.id); return wp ? `<a class="btn" href="#wiki-${wp.id}">Read in the wiki</a>` : `<button class="btn w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add to wiki</button>`; })() : ''}${linkTargets(p.circleId).length?`<button class="btn w" data-act="sendTo" data-kind="proposal" data-id="${p.id}" type="button">Send to another circle</button>`:''}<button class="btn w" data-act="editProposal" data-id="${p.id}" type="button">Update proposal</button></div></div>
+    <div class="row">${p.stage==='consented' ? (() => { const wp = vals('wiki').find(w => w.proposalId === p.id); return wp ? `<a class="btn" href="#wiki-${wp.id}">Read in the wiki</a>` : `<button class="btn w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add to wiki</button>`; })() : ''}${reached>=2 && linkTargets(p.circleId).length?`<button class="btn w" data-act="sendTo" data-kind="proposal" data-id="${p.id}" type="button">Send to another circle</button>`:''}<button class="btn ghost sm w" data-act="editProposal" data-id="${p.id}" type="button" title="Correct mistakes in any field">Edit proposal</button></div></div>
   ${(p.sentTo||[]).length?`<div class="row">${sentHTML(p.sentTo)}</div>`:''}
-  <div class="track" aria-label="Process progress">${labels.map((l,i)=>`<div class="${i<reached?'done':i===reached&&p.stage!=='withdrawn'?'now':''}">${l}</div>`).join('')}</div>
+  <div class="track" aria-label="Process progress">${labels.map((l,i)=>{ const cls = i<reached?'done':i===reached&&!['withdrawn','consented','notconsented'].includes(p.stage)?'now':''; const live = canWrite && i<reached && i<5 && !['consented','notconsented','withdrawn'].includes(p.stage); return `<div class="${cls}">${live?`<a href="#" data-act="stepDo" data-id="${p.id}" data-i="${i}" title="Revise this step">${l}</a>`:l}</div>`; }).join('')}</div>
+  ${stepPanel(p, reached)}
+  ${p.stage==='consented' ? `<section class="panel" style="border-color:var(--ok)"><div class="ph"><h2>Consented${p.decided?` · <span class="mono" style="font-size:15px">${mdy(p.decided)}</span>`:''}</h2><div class="row"><button class="btn sm w" data-act="decide" data-id="${p.id}" data-v="consented" type="button">Edit decision</button><button class="btn sm ghost w" data-act="undoDecision" data-id="${p.id}" type="button">Clear decision</button></div></div>
+    <div class="grid3"><div class="def"><span class="eyebrow">Review by</span><div class="mono">${mdy(p.reviewDate)||'—'}</div></div><div class="def"><span class="eyebrow">Decided in</span><div>${p.meetingId&&S.meetings[p.meetingId]?`<a href="#meeting-${p.meetingId}">Meeting on ${mdy(S.meetings[p.meetingId].date)}</a>`:'Not in a recorded meeting'}</div></div><div class="def"><span class="eyebrow">Affects</span><div>${(p.affects||[]).includes('everyone')?'Everyone':(p.affects||[]).filter(x=>S.circles[x]).map(x=>`<a href="#circle-${x}">${esc(S.circles[x].name)}</a>`).join(', ')||'—'}</div></div></div></section>` : ''}
   ${p.basedOn && S.proposals[p.basedOn] ? `<p class="muted" style="font-size:14px">A new approach to the same need as <a href="#proposal-${p.basedOn}">${esc(S.proposals[p.basedOn].title)}</a>, which was not consented.</p>` : ''}
-  ${p.stage==='notconsented' ? (() => { const open = (p.objections||[]).filter(o=>!o.resolved); const fu = p.followUpId && S.proposals[p.followUpId]; return `<section class="panel" style="border-color:var(--bad)"><div class="ph"><h2>Not consented${p.droppedOn?` · <span class="mono" style="font-size:15px">${mdy(p.droppedOn)}</span>`:''}</h2></div>
+  ${p.stage==='notconsented' ? (() => { const open = (p.objections||[]).filter(o=>!o.resolved); const fu = p.followUpId && S.proposals[p.followUpId]; return `<section class="panel" style="border-color:var(--bad)"><div class="ph"><h2>Not consented${p.droppedOn?` · <span class="mono" style="font-size:15px">${mdy(p.droppedOn)}</span>`:''}</h2><div class="row"><button class="btn sm w" data-act="decide" data-id="${p.id}" data-v="notconsented" type="button">Edit decision</button><button class="btn sm ghost w" data-act="undoDecision" data-id="${p.id}" type="button">Clear decision</button></div></div>
     <p>The circle could not integrate ${open.length===1?'an objection':open.length?'the objections':'the objections raised'}, so this proposal did not pass. The current way stays in place until a new proposal is consented.</p>
     ${p.dropReason?`<div class="def"><span class="eyebrow">Why it was not consented</span><div class="txt">${esc(p.dropReason)}</div></div>`:''}
     ${open.length?`<div class="def"><span class="eyebrow">Objections that could not be integrated</span><ul style="margin:0;padding-left:20px">${open.map(o=>`<li>${esc(o.concern)}${o.by?` <span class="muted">(${esc(o.by)})</span>`:''}</li>`).join('')}</ul></div>`:''}
@@ -961,7 +990,7 @@ function vProposal(id){
     <section class="panel"><h2>Forming the proposal</h2>
       ${sec('The need (driver)', p.driver, 'What is happening and what is needed?')}
       ${sec('What we learned', p.understanding, 'Questions asked to understand the situation.')}
-      ${sec('Dimensions to address', p.dimensions, 'The aspects any good proposal must cover.')}
+      ${sec('Dimensions to address', p.dimensions, 'The topics any good proposal must cover, such as cost, responsibility and timeline.')}
       ${sec('Ideas considered', p.ideas, 'Ideas generated before shaping.')}
     </section>
     <section class="panel"><h2>The proposal</h2>
@@ -1106,55 +1135,203 @@ function editMeeting(id, circleId){
   }, {wide:true, saveLabel:'Save minutes', onDelete: id ? async () => { await remove('meetings', id); location.hash='circle-'+m.circleId+'-meetings'; toast('Meeting deleted'); return true; } : null, deleteLabel:'Delete minutes'});
 }
 
+
+/* ---------- All proposals ---------- */
+let propStage = 'open', propCircle = '', propAffects = '';
+const PROP_STAGE_F = {open:'In progress', consented:'Consented', notconsented:'Not consented', withdrawn:'Withdrawn', all:'All stages'};
+function affectsHTML(p){
+  const a = p.affects || [];
+  if(a.includes('everyone')) return '<span class="everyone">Affects everyone</span>';
+  const names = a.filter(id => S.circles[id]).map(id => esc(S.circles[id].name));
+  return names.length ? `<span class="muted" style="font-size:12.5px">Affects ${names.join(', ')}</span>` : '';
+}
+function vProposals(){
+  let list = vals('proposals');
+  if(propStage === 'open') list = list.filter(p => ['forming','ready','objection'].includes(p.stage));
+  else if(propStage !== 'all') list = list.filter(p => p.stage === propStage);
+  if(propCircle) list = list.filter(p => p.circleId === propCircle);
+  if(propAffects === 'everyone') list = list.filter(p => (p.affects||[]).includes('everyone'));
+  else if(propAffects) list = list.filter(p => (p.affects||[]).includes('everyone') || (p.affects||[]).includes(propAffects));
+  const dt = p => p.stage==='notconsented' ? p.droppedOn : p.stage==='consented' ? p.decided : p.created;
+  list.sort((a,b) => (dt(b)||'').localeCompare(dt(a)||''));
+  const circs = ordered();
+  return `<div class="head"><div class="t"><span class="eyebrow">Circles</span><h1>Proposals</h1><p>Every proposal across all circles. Filter by the circle that brought it, or by who it affects.</p></div></div>
+  <div class="ptools">
+    <select id="prf-stage" class="sel" aria-label="Stage">${Object.entries(PROP_STAGE_F).map(([k,l]) => `<option value="${k}" ${k===propStage?'selected':''}>${l}</option>`).join('')}</select>
+    <select id="prf-circle" class="sel" aria-label="Brought by circle"><option value="">Brought by any circle</option>${circs.map(([c]) => `<option value="${c.id}" ${c.id===propCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    <select id="prf-aff" class="sel" aria-label="Affects"><option value="">Affects anyone</option><option value="everyone" ${propAffects==='everyone'?'selected':''}>Affects everyone</option>${circs.map(([c]) => `<option value="${c.id}" ${c.id===propAffects?'selected':''}>Affects ${esc(c.name)}</option>`).join('')}</select>
+  </div>
+  ${list.length ? `<div class="tscroll"><table class="ptable"><thead><tr><th>Proposal</th><th>Circle</th><th>Affects</th><th>Stage</th><th>Date</th></tr></thead><tbody>${list.map(p => `<tr>
+    <td><a href="#proposal-${p.id}"><b>${esc(p.title)}</b></a>${p.driver?`<div class="muted clamp" style="font-size:13px">${esc(p.driver)}</div>`:''}</td>
+    <td>${S.circles[p.circleId]?`<a href="#circle-${p.circleId}-proposals">${esc(circleName(p.circleId))}</a>`:'<span class="muted">—</span>'}</td>
+    <td>${affectsHTML(p) || '<span class="muted">—</span>'}</td>
+    <td>${stChip(STAGES[p.stage]?.label||p.stage, STAGES[p.stage]?.cls||'mute')}</td>
+    <td class="mono" style="white-space:nowrap">${mdy(dt(p))||'—'}</td></tr>`).join('')}</tbody></table></div>` : emptyBox('No proposals match these filters.')}`;
+}
+
 /* ---------- Proposal form ---------- */
 function objRow(o={}){ const k=uid('o'); return `<div class="reprow orow" data-k="${k}"><div class="rh"><b>Objection</b><button class="btn sm ghost" data-act="removeRow" type="button">Remove</button></div><div class="grid2">${fText('ob-'+k,'Raised by',o.by,{list:1})}<div class="f"><span>Status</span>${fChk('or-'+k,'Integrated',o.resolved)}</div></div>${fArea('oc-'+k,'Objection',o.concern,{rows:2,ph:'How would this proposal prevent the circle from reaching its aim?'})}${fArea('os-'+k,'How it was integrated',o.resolution,{rows:2})}</div>`; }
 function editProposal(id, circleId){
+  if(!id) return newProposalForm(circleId);
   const p = id ? clone(S.proposals[id]) : {id:uid('p'), circleId, stage:'forming', created:todayISO(), objections:[]};
   const meets = circleMeetings(p.circleId);
+  const decided = ['consented','notconsented'].includes(p.stage) ? p.stage : '';
+  const preStages = {forming:'Forming', ready:'Ready for consent', objection:'Integrating objections', withdrawn:'Withdrawn'};
+  const preStage = preStages[p.stage] ? p.stage : (p.stageBefore && preStages[p.stageBefore] ? p.stageBefore : 'ready');
   const body = `
   ${fText('p-title','Title',p.title,{ph:'e.g. Shared calendar for all circles'})}
-  <div class="grid2">${fText('p-author','Brought by',p.author,{list:1})}${fSel('p-stage','Stage',Object.fromEntries(Object.entries(STAGES).map(([k,v])=>[k,v.label])),p.stage)}</div>
+  <div class="grid2">${fText('p-author','Brought by',p.author,{list:1})}<label class="f"><span>Stage</span><select id="p-stage" ${decided?'disabled':''}>${Object.entries(preStages).map(([k,l])=>`<option value="${k}" ${k===preStage?'selected':''}>${esc(l)}</option>`).join('')}</select><small>${decided?`Decided: ${STAGES[decided].label}. Change the decision on the proposal page.`:'Record the decision with the Consent buttons on the proposal page.'}</small></label></div>
   <fieldset class="fs"><legend>Forming the proposal</legend>
     ${fArea('p-driver','The need (driver)',p.driver,{rows:2,ph:'What is happening, and what is needed?'})}
     ${fArea('p-und','Understand',p.understanding,{rows:2,ph:'What the circle learned from its questions'})}
-    ${fArea('p-dim','Explore dimensions',p.dimensions,{rows:2,ph:'Aspects any good proposal must address'})}
-    ${fArea('p-ideas','Ideas',p.ideas,{rows:2})}
+    ${fArea('p-dim','Explore dimensions: what must a good solution cover?',p.dimensions,{rows:3,ph:'e.g. Cost · who is responsible · timeline · which circles it touches · how we will know it works',hint:'List the <b>topics</b> any good proposal has to address, not the answers yet. Think of them as the questions the proposal must answer. Ideas for each one go in the next box.'})}
+    ${fArea('p-ideas','Ideas',p.ideas,{rows:2,ph:'Possible answers for each dimension'})}
   </fieldset>
   ${fArea('p-text','The proposal',p.proposal,{rows:5,ph:'Who does what, by when, and how it will be evaluated'})}
   <fieldset class="fs"><legend>Consent process</legend>
     ${fArea('p-q','Clarifying questions',p.questions,{rows:2})}
     ${fArea('p-r','Quick reactions',p.reactions,{rows:2})}
     <div class="rep" id="orows">${(p.objections||[]).map(objRow).join('')}</div><div><button class="btn sm" data-act="addObjection" type="button">Add objection</button></div>
-    <div class="grid3">${fDate('p-dec','Consented on',p.decided)}${fDate('p-rev','Review by',p.reviewDate)}<label class="f"><span>Decided in meeting</span><select id="p-meet"><option value="">None</option>${meets.map(m=>`<option value="${m.id}" ${m.id===p.meetingId?'selected':''}>${mdy(m.date)}</option>`).join('')}</select></label></div>
-    ${p.noticeId?'<p class="hint">Announced on the community board.</p>':`<div class="grid2">${fChk('p-ann','When consented, announce on the community board',true)}${fChk('p-all','It affects everyone',false)}</div>`}
   </fieldset>
-  <fieldset class="fs"><legend>If it is not consented</legend>
-    <p class="hint">Set the stage to <b>Not consented</b> when an objection cannot be integrated. Record why, so the same idea does not come back without this context.</p>
-    <div class="grid2">${fDate('p-drop','Not consented on',p.droppedOn)}<div class="f"><span>Community board</span>${p.dropNoticeId?'<span class="muted" style="font-size:13.5px">Already posted.</span>':fChk('p-dropann','Let the community know',false)}</div></div>
-    ${fArea('p-why','Why it was not consented',p.dropReason,{rows:3,ph:'The objection that could not be integrated, and what the circle learned'})}
-  </fieldset>`;
-  openModal(id ? 'Update proposal' : 'New proposal', body, async () => {
+`;
+  openModal('Edit proposal', body, async () => {
     const title = gv('p-title'); if(!title){ toast('Give the proposal a title.'); return false; }
     const objections = [...document.querySelectorAll('#orows .orow')].map(r=>{ const k=r.dataset.k; return {by:gv('ob-'+k), concern:gv('oc-'+k), resolution:gv('os-'+k), resolved:gc('or-'+k)}; }).filter(o=>o.concern);
-    const obj = {...p, title, author:gv('p-author'), stage:gv('p-stage'), driver:gv('p-driver'), understanding:gv('p-und'), dimensions:gv('p-dim'), ideas:gv('p-ideas'), proposal:gv('p-text'), questions:gv('p-q'), reactions:gv('p-r'), objections, decided:gd('p-dec'), reviewDate:gd('p-rev'), meetingId:gv('p-meet')};
-    obj.droppedOn = gd('p-drop'); obj.dropReason = gv('p-why');
-    if(obj.stage==='notconsented'){
-      const open = objections.filter(o=>!o.resolved);
-      if(!obj.dropReason && open.length) obj.dropReason = open.map(o=>o.concern).join('\n');
-      if(!obj.dropReason) throw new Invalid('Add the objection that could not be integrated, or explain why it was not consented.');
-      if(!obj.droppedOn) obj.droppedOn = todayISO();
+    const obj = {...p, title, author:gv('p-author'), driver:gv('p-driver'), understanding:gv('p-und'), dimensions:gv('p-dim'), ideas:gv('p-ideas'), proposal:gv('p-text'), questions:gv('p-q'), reactions:gv('p-r'), objections};
+    if(!decided) obj.stage = gv('p-stage');
+    const ok = await put('proposals', obj); if(ok){ toast('Proposal saved'); location.hash='proposal-'+obj.id; } return ok;
+  }, {wide:true, saveLabel:'Save proposal', onDelete: id ? async () => { await remove('proposals', id); location.hash='circle-'+p.circleId+'-proposals'; toast('Proposal deleted'); return true; } : null, deleteLabel:'Delete proposal'});
+}
+
+
+
+/* ---------- Proposal blueprint: one clear next step at a time ---------- */
+const P_STEPS = [
+  {label:'Understand the need', btn:'Record what we learned', help:'Describe what is happening and what is needed. Then ask questions until everyone in the circle shares the same picture.'},
+  {label:'Explore dimensions', btn:'Add dimensions', help:'List the topics any good solution has to cover, such as cost, who is responsible, timeline, which circles it touches and how we will know it works. Name the topics, not the answers.', skip:'Skip this step'},
+  {label:'Shape the proposal', btn:'Write the proposal', help:'Collect ideas for each dimension. Then one or two people combine the best ideas into one proposal: who does what, by when, and how it will be evaluated.'},
+  {label:'Clarifying questions', btn:'Add clarifying questions', help:'Present the proposal to the circle. Go around once: questions only, no opinions yet.', skip:'No questions, continue'},
+  {label:'Quick reactions', btn:'Add quick reactions', help:'Go around once more. Everyone shares a short reaction to the proposal.', skip:'No reactions, continue'},
+  {label:'Consent round', help:'Each person says consent or objection. Record any objections and integrate them by changing the proposal.'}
+];
+function propReached(p){
+  let r = 0;
+  if(p.understanding) r = 1; if(p.dimensions) r = 2; if(p.proposal) r = 3; if(p.questions) r = 4; if(p.reactions) r = 5;
+  r = Math.max(r, p.step || 0);
+  if(p.stage==='objection') r = Math.max(r, 5);
+  if(p.stage==='consented'||p.stage==='notconsented') r = 6;
+  return Math.min(r, 6);
+}
+function stepPanel(p, reached){
+  if(!canWrite) return '';
+  if(p.stage === 'withdrawn') return `<section class="panel bp"><div class="ph"><h2>This proposal was withdrawn</h2><button class="btn sm" data-act="reopenProposal" data-id="${p.id}" type="button">Reopen</button></div></section>`;
+  if(['consented','notconsented'].includes(p.stage) || reached > 5) return '';
+  const st = P_STEPS[reached];
+  const head = `<div class="bp-head"><span class="eyebrow">Next step · ${reached+1} of 6</span><h2>${st.label}</h2><p class="muted">${st.help}</p></div>`;
+  const withdraw = `<button class="linkbtn muted" data-act="withdrawProposal" data-id="${p.id}" type="button">Withdraw proposal</button>`;
+  if(reached < 5) return `<section class="panel bp">${head}<div class="row">${`<button class="btn pri" data-act="stepDo" data-id="${p.id}" data-i="${reached}" type="button">${st.btn}</button>`}${st.skip?`<button class="btn ghost" data-act="stepSkip" data-id="${p.id}" data-i="${reached}" type="button">${st.skip}</button>`:''}<span class="sp"></span>${withdraw}</div></section>`;
+  const open = (p.objections||[]).map((o,i)=>({o,i})).filter(x=>!x.o.resolved);
+  return `<section class="panel bp">${head}
+    ${open.length ? `<div class="stack"><span class="eyebrow">Objections to integrate</span>${open.map(({o,i}) => `<div class="obj-open"><div><b>${esc(o.by||'Someone')}</b><div>${esc(o.concern)}</div></div><button class="btn sm" data-act="integrateObj" data-id="${p.id}" data-i="${i}" type="button">Mark integrated</button></div>`).join('')}</div>` : ''}
+    <div class="decide">
+      <button type="button" class="dec ok" data-act="decide" data-id="${p.id}" data-v="consented" ${open.length?'disabled title="Integrate the open objections first"':''}><b>Consent</b><span>${open.length?'Integrate the open objections first':'No objections remain'}</span></button>
+      <button type="button" class="dec bad" data-act="decide" data-id="${p.id}" data-v="notconsented"><b>Not consented</b><span>An objection could not be integrated</span></button>
+    </div>
+    <div class="row"><button class="btn" data-act="recordObj" data-id="${p.id}" type="button">Record an objection</button><span class="sp"></span>${withdraw}</div>
+  </section>`;
+}
+function stepModal(id, i){
+  const p = clone(S.proposals[id]); if(!p) return; i = +i;
+  const forms = [
+    () => fArea('s-driver','The need (driver) *',p.driver,{rows:3,ph:'What is happening, and what is needed?'}) + fArea('s-und','What we learned',p.understanding,{rows:4,ph:'Answers to the questions the circle asked to understand the situation'}),
+    () => fArea('s-dim','Dimensions: what must a good solution cover? *',p.dimensions,{rows:4,ph:'e.g. Cost · who is responsible · timeline · which circles it touches · how we will know it works',hint:'Name the topics, not the answers. Ideas come in the next step.'}),
+    () => fArea('s-ideas','Ideas',p.ideas,{rows:3,ph:'Possible answers for each dimension'}) + fArea('s-text','The proposal *',p.proposal,{rows:6,ph:'Who does what, by when, and how it will be evaluated'}),
+    () => fArea('s-q','Clarifying questions and answers *',p.questions,{rows:5}),
+    () => fArea('s-r','Quick reactions *',p.reactions,{rows:5})
+  ];
+  const req = [['s-driver','Describe the need.'],['s-dim','Add at least one dimension, or skip this step.'],['s-text','Write the proposal.'],['s-q','Add the questions, or continue without them.'],['s-r','Add the reactions, or continue without them.']][i];
+  openModal(P_STEPS[i].label, `<p class="muted" style="font-size:14px">${P_STEPS[i].help}</p>` + forms[i](), async () => {
+    if(!gv(req[0])){ $('#'+req[0]).classList.add('bad'); throw new Invalid(req[1]); }
+    const o = {...p};
+    if(i===0){ o.driver = gv('s-driver'); o.understanding = gv('s-und'); }
+    if(i===1) o.dimensions = gv('s-dim');
+    if(i===2){ o.ideas = gv('s-ideas'); o.proposal = gv('s-text'); if(o.stage === 'forming') o.stage = 'ready'; }
+    if(i===3) o.questions = gv('s-q');
+    if(i===4) o.reactions = gv('s-r');
+    o.step = Math.max(o.step||0, i+1);
+    const ok = await put('proposals', o); if(ok) toast(i+1 < 6 && o.step === i+1 ? 'Done. Next: ' + P_STEPS[i+1].label : 'Saved'); return ok;
+  }, {wide: i===2, saveLabel: i < 4 && (p.step||0) <= i ? 'Save and continue' : 'Save'});
+}
+function objModal(id){
+  const p = clone(S.proposals[id]); if(!p) return;
+  openModal('Record an objection', `<p class="muted" style="font-size:14px">An objection is a reasoned argument that this proposal would keep the circle from reaching its aim. A preference is not an objection.</p>${fText('ob-by','Raised by','',{list:1})}${fArea('ob-c','Objection *','',{rows:3,ph:'How would this proposal prevent the circle from reaching its aim?'})}`, async () => {
+    const concern = gv('ob-c'); if(!concern){ $('#ob-c').classList.add('bad'); throw new Invalid('Describe the objection.'); }
+    p.objections = [...(p.objections||[]), {by:gv('ob-by'), concern, resolution:'', resolved:false}];
+    p.stage = 'objection'; p.step = Math.max(p.step||0, 5);
+    const ok = await put('proposals', p); if(ok) toast('Objection recorded'); return ok;
+  }, {saveLabel:'Record objection'});
+}
+function integrateModal(id, i){
+  const p = clone(S.proposals[id]); if(!p) return; const o = p.objections[+i]; if(!o) return;
+  openModal('Integrate the objection', `<div class="def"><span class="eyebrow">Objection${o.by?' from '+esc(o.by):''}</span><div class="txt">${esc(o.concern)}</div></div>${fArea('ob-res','How it was integrated *',o.resolution,{rows:3,ph:'What changed in the proposal so the objection is resolved'})}${fArea('ob-text','The proposal, as amended',p.proposal,{rows:5,hint:'Update the proposal text if the change belongs in it.'})}`, async () => {
+    const res = gv('ob-res'); if(!res){ $('#ob-res').classList.add('bad'); throw new Invalid('Explain how it was integrated.'); }
+    p.objections[+i] = {...o, resolution:res, resolved:true}; p.proposal = gv('ob-text') || p.proposal;
+    if(!p.objections.some(x => !x.resolved)) p.stage = 'ready';
+    const ok = await put('proposals', p); if(ok) toast(p.stage==='ready' ? 'All objections integrated. Run the consent round again.' : 'Objection integrated'); return ok;
+  }, {wide:true, saveLabel:'Mark integrated'});
+}
+function newProposalForm(circleId){
+  openModal('New proposal', `<p class="muted" style="font-size:14px">Start with the need. The proposal page then guides the circle through each step.</p>${fText('np-title','Title *','',{ph:'e.g. Shared calendar for all circles'})}${fText('np-author','Brought by',me.name||'',{list:1})}${fArea('np-driver','The need (driver)','',{rows:3,ph:'What is happening, and what is needed?'})}`, async () => {
+    const title = gv('np-title'); if(!title){ $('#np-title').classList.add('bad'); throw new Invalid('Give the proposal a title.'); }
+    const n = {id:uid('p'), circleId, stage:'forming', step:0, created:todayISO(), title, author:gv('np-author'), driver:gv('np-driver'), objections:[]};
+    const ok = await put('proposals', n); if(ok){ location.hash = 'proposal-' + n.id; toast('Proposal started'); } return ok;
+  }, {saveLabel:'Start proposal'});
+}
+
+/* ---------- Record a decision ---------- */
+function recordDecision(id, v){
+  const p = clone(S.proposals[id]); if(!p) return;
+  const meets = circleMeetings(p.circleId), aff = p.affects || [];
+  const openObj = (p.objections||[]).filter(o=>!o.resolved).map(o=>o.concern).join('\n');
+  const body = v === 'consented' ? `
+    <p class="muted" style="font-size:14px">No objections remain, so <b>${esc(p.title)}</b> becomes a policy of ${esc(circleName(p.circleId))}.</p>
+    <div class="grid3">${fDate('p-dec','Consented on',p.decided||todayISO())}${fDate('p-rev','Review by *',p.reviewDate)}<label class="f"><span>Decided in meeting *</span><select id="p-meet"><option value="">Choose…</option>${meets.map(m=>`<option value="${m.id}" ${m.id===p.meetingId?'selected':''}>${mdy(m.date)}</option>`).join('')}<option value="none" ${p.noMeeting?'selected':''}>Not in a recorded meeting</option></select></label></div>
+    <div class="f"><span>Affected circles * <small style="font-weight:400">(check all that apply)</small></span>
+      <div class="affgrid" id="p-aff">${fChk('pa-everyone','<b>Everyone</b>',aff.includes('everyone'))}${ordered().map(([c]) => `<label class="chk"><input type="checkbox" class="pa-c" value="${c.id}" ${aff.includes(c.id)?'checked':''} ${aff.includes('everyone')?'disabled':''}> ${esc(c.name)}</label>`).join('')}</div></div>
+    ${p.noticeId?'<p class="hint">Already announced on the community board.</p>':fChk('p-ann','Announce on the community board',true)}`
+  : `
+    <p class="muted" style="font-size:14px">An objection could not be integrated, so the current way stays in place.</p>
+    ${fDate('p-drop','Not consented on',p.droppedOn||todayISO())}
+    ${fArea('p-why','Why it was not consented *',p.dropReason||openObj,{rows:4,ph:'The objection that could not be integrated, and what the circle learned'})}
+    ${p.dropNoticeId?'<p class="hint">Already posted on the community board.</p>':fChk('p-dropann','Let the community know on the community board',false)}`;
+  openModal(v === 'consented' ? 'Record consent' : 'Record: not consented', body, async () => {
+    const obj = {...p, stage:v};
+    if(!['consented','notconsented'].includes(p.stage)) obj.stageBefore = p.stage;
+    if(v === 'consented'){
+      obj.decided = gd('p-dec') || todayISO();
+      obj.reviewDate = gd('p-rev'); if(!obj.reviewDate){ $('#p-rev').classList.add('bad'); throw new Invalid('Add a review date.'); }
+      const mt = gv('p-meet'); if(!mt){ $('#p-meet').classList.add('bad'); throw new Invalid('Choose the meeting where this was decided.'); }
+      obj.meetingId = mt === 'none' ? '' : mt; obj.noMeeting = mt === 'none';
+      obj.affects = gc('pa-everyone') ? ['everyone'] : [...document.querySelectorAll('#p-aff .pa-c:checked')].map(x => x.value);
+      if(!obj.affects.length) throw new Invalid('Check the circles this affects, or Everyone.');
+      delete obj.droppedOn; delete obj.dropReason;
+      if(!obj.noticeId && gc('p-ann')){
+        const all = obj.affects.includes('everyone');
+        const who = all ? '' : obj.affects.filter(x => S.circles[x]).map(x => S.circles[x].name).join(', ');
+        const n = {id:uid('n'), title:'Consented: '+obj.title, body:[obj.proposal, who?'Affects: '+who+'.':'', 'Review by '+mdy(obj.reviewDate)+'.'].filter(Boolean).join('\n\n'), kind:'decision', circleId:obj.circleId, date:obj.decided, effective:obj.decided, proposalId:obj.id, meetingId:obj.meetingId, affectsAll:all, affects:obj.affects, example:!!p.example};
+        if(await put('notices', n)) obj.noticeId = n.id;
+      }
+    } else {
+      obj.droppedOn = gd('p-drop') || todayISO();
+      obj.dropReason = gv('p-why'); if(!obj.dropReason){ $('#p-why').classList.add('bad'); throw new Invalid('Explain why it was not consented.'); }
+      delete obj.decided; delete obj.reviewDate;
       if(!obj.dropNoticeId && gc('p-dropann')){
-        const n = {id:uid('n'), title:'Not consented: '+title, kind:'news', circleId:obj.circleId, date:obj.droppedOn, proposalId:obj.id, meetingId:obj.meetingId, affectsAll:false, example:!!p.example, body:`${circleName(obj.circleId)} did not consent to this proposal. The current way stays in place.\n\nWhy: ${obj.dropReason}`};
+        const n = {id:uid('n'), title:'Not consented: '+obj.title, kind:'news', circleId:obj.circleId, date:obj.droppedOn, proposalId:obj.id, meetingId:obj.meetingId||'', affectsAll:false, example:!!p.example, body:`${circleName(obj.circleId)} did not consent to this proposal. The current way stays in place.\n\nWhy: ${obj.dropReason}`};
         if(await put('notices', n)) obj.dropNoticeId = n.id;
       }
     }
-    if(obj.stage==='consented' && !obj.decided) obj.decided = todayISO();
-    if(obj.stage==='consented' && !obj.noticeId && gc('p-ann')){
-      const n = {id:uid('n'), title:'Consented: '+title, body:[obj.proposal, obj.reviewDate?'Review by '+mdy(obj.reviewDate)+'.':''].filter(Boolean).join('\n\n'), kind:'decision', circleId:obj.circleId, date:obj.decided, effective:obj.decided, proposalId:obj.id, meetingId:obj.meetingId, affectsAll:gc('p-all'), example:!!p.example};
-      if(await put('notices', n)) obj.noticeId = n.id;
-    }
-    const ok = await put('proposals', obj); if(ok){ toast('Proposal saved'); location.hash='proposal-'+obj.id; } return ok;
-  }, {wide:true, saveLabel:'Save proposal', onDelete: id ? async () => { await remove('proposals', id); location.hash='circle-'+p.circleId+'-proposals'; toast('Proposal deleted'); return true; } : null, deleteLabel:'Delete proposal'});
+    const ok = await put('proposals', obj); if(ok) toast(v === 'consented' ? 'Consent recorded' : 'Recorded as not consented'); return ok;
+  }, {saveLabel: v === 'consented' ? 'Record consent' : 'Record decision'});
 }
 
 /* ---------- Notice form ---------- */
@@ -1231,7 +1408,7 @@ async function loadExamples(){
     {id:'cexout', name:'Outreach Circle', type:'department', parentId:'cexgen', aim:'Build relationships with neighbors and partner organizations.', domain:'Partnerships, public talks, representing the community at outside events.', rhythm:'Every three weeks', members:['Hugo (example)','Iris (example)'], roles:{leader:{holder:''},delegate:{holder:'Hugo (example)',selected:d(-40),termEnd:d(325)},facilitator:{holder:'Iris (example)',selected:d(-40),termEnd:d(325)},secretary:{holder:''}}, ...ex},
     {id:'cexcare', name:'Care Circle', type:'department', parentId:'cexgen', aim:'Support members through busy or hard times and keep our culture kind.', domain:'Check-ins, the support rota, conflict support requests.', rhythm:'Every other Friday', members:['Mia (example)','Ruth (example)','Nadia (example)','Yuki (example)'], roles:R6('Ana (example)','Mia (example)','Ruth (example)','Nadia (example)',25), ...ex}
   ];
-  const prop1 = {id:'pexcal', circleId:'cexops', title:'One shared calendar for all circles', author:'Kai (example)', stage:'consented', created:d(-25), driver:'Circles schedule meetings in different tools, so people miss meetings and double-book the shared room.', understanding:'Three circles use different calendars. Room conflicts happened twice last month.', dimensions:'Who can add events · room booking · visibility for non-members', ideas:'Shared online calendar · booking sheet · weekly email', proposal:'All circles add their meetings and room bookings to one shared calendar that every member can view. Circle secretaries keep their circle\'s events up to date. Operations reviews how it works after three months.', questions:'Can non-members see it? Yes, view only.', reactions:'Mostly positive. Some worry about keeping it updated.', objections:[{by:'Jo (example)', concern:'Without a named owner, the calendar will go stale.', resolution:'Secretaries keep their own circle\'s events current.', resolved:true}], decided:d(-10), reviewDate:d(80), meetingId:'mexops', noticeId:'nexcal', ...ex};
+  const prop1 = {id:'pexcal', affects:['everyone'], circleId:'cexops', title:'One shared calendar for all circles', author:'Kai (example)', stage:'consented', created:d(-25), driver:'Circles schedule meetings in different tools, so people miss meetings and double-book the shared room.', understanding:'Three circles use different calendars. Room conflicts happened twice last month.', dimensions:'Who can add events · room booking · visibility for non-members', ideas:'Shared online calendar · booking sheet · weekly email', proposal:'All circles add their meetings and room bookings to one shared calendar that every member can view. Circle secretaries keep their circle\'s events up to date. Operations reviews how it works after three months.', questions:'Can non-members see it? Yes, view only.', reactions:'Mostly positive. Some worry about keeping it updated.', objections:[{by:'Jo (example)', concern:'Without a named owner, the calendar will go stale.', resolution:'Secretaries keep their own circle\'s events current.', resolved:true}], decided:d(-10), reviewDate:d(80), meetingId:'mexops', noticeId:'nexcal', ...ex};
   const prop2 = {id:'pexbud', circleId:'cexmem', title:'Buddy program for new members', author:'Lena (example)', stage:'forming', created:d(-5), driver:'New members say they feel lost during their first weeks.', dimensions:'Who can be a buddy · how long · how we check in', ...ex};
   const meet = {id:'mexops', circleId:'cexops', date:d(-10), status:'published', facilitator:'Kai (example)', secretary:'Jo (example)', present:['Sam (example)','Jo (example)','Kai (example)'], absent:[], opening:'Everyone present and ready. Sam has to leave 10 minutes early.', prevMinutes:true, nextDate:d(18), announcements:'The heating repair is scheduled.', agendaConsented:true, agenda:[{title:'Shared calendar', type:'decide', notes:'Kai presented the proposal. One objection from Jo about upkeep, integrated by naming secretaries as owners.', outcome:'Consented. Review in three months.', takeaway:'All circles will use one shared calendar.', proposalId:'pexcal', noticeId:'nexcal'},{title:'Tool subscriptions report', type:'report', notes:'Sam reviewed current subscriptions. Two are unused.', outcome:'Sam will cancel the two unused subscriptions.', takeaway:''}], closing:'Good pace. Next time, send the proposal a few days ahead.', takeaways:'We consented to one shared calendar for all circles. Secretaries will keep their circle\'s events up to date.\nTwo unused tool subscriptions will be cancelled.', ...ex};
   const meet2 = {id:'mexmem', circleId:'cexmem', date:d(-3), status:'draft', facilitator:'Lena (example)', secretary:'Tomas (example)', present:['Priya (example)','Lena (example)','Tomas (example)'], absent:['Ruth (example)'], opening:'', prevMinutes:true, agendaConsented:true, agenda:[{title:'Buddy program', type:'explore', notes:'Explored what new members need in their first weeks.', outcome:'Lena and Ruth will shape a proposal.', takeaway:''},{title:'Welcome pack budget', type:'explore', notes:'Welcome packs need a small budget, which is outside our domain.', outcome:'Priya, as delegate, takes the request to the General Circle.', takeaway:'', sentTo:['cexgen']}], closing:'', takeaways:'We are exploring a buddy program for new members. A proposal will come to the next meeting.', ...ex};
@@ -1297,7 +1474,7 @@ async function loadExamples(){
     ['Nadia (example)','Delegate for Finance.','accounting, reporting','care','Mondays',-150,''],
     ['Mia (example)','Delegate for Care and organizer of the support rota.','listening, scheduling','wellbeing, events','Afternoons',-120,''],
     ['Yuki (example)','Facilitates the Learning Circle.','teaching, facilitation','sociocracy, languages','Evenings',-60,'Priya (example)']
-  ].map(([name,bio,skills,interests,availability,j,buddy]) => ({id:'pex'+hashName(name).slice(1), name, bio, skills, interests, availability, joined:d(j), buddy, ...ex}));
+  ].map(([name,bio,skills,interests,availability,j,buddy], i) => ({id:'pex'+hashName(name).slice(1), name, pronouns:['she/her','he/him','she/her','they/them','he/him','she/her','she/her','he/him','he/him','she/her','she/her','they/them'][i]||'', bio, skills, interests, joined:d(j), buddy, ...ex}));
   for(const pp of ppl) await put('people', pp);
   for(const pp of ppl.slice(0,6)) await put('contacts', {id:pp.id, email:pp.name.split(' ')[0].toLowerCase()+'@example.org', phone:'', channel:'Email', ...ex});
   for(const j of projects) await put('projects', j);
@@ -1333,6 +1510,9 @@ const P_STATUS = {active:['Active','ok'], paused:['Paused','warn'], done:['Done'
 let workView = (() => { try{ return localStorage.getItem('cc-workview') || 'board'; }catch(e){ return 'board'; } })();
 let workProject = 'all';
 let workPerson = '', workCircle = '', workDone = false;
+let workMode = (() => { try{ return localStorage.getItem('cc-workmode') || 'tasks'; }catch(e){ return 'tasks'; } })();
+const plusBtn = (circleId, projectId, name) => `<button class="plus w" data-act="newAction" data-circle="${circleId}" data-project="${projectId}" type="button" title="Add a task to ${esc(name)}" aria-label="Add a task to ${esc(name)}">+</button>`;
+function projMeta(p){ const pg = projProgress(p.id); const pct = pg.total ? Math.round(pg.done/pg.total*100) : 0; return {pg, pct}; }
 function projectsOf(circleId){ const o = {active:0, paused:1, done:2}; return vals('projects').filter(p => p.circleId === circleId).sort((a,b) => (o[a.status]??0)-(o[b.status]??0) || (a.name||'').localeCompare(b.name||'')); }
 function projProgress(pid){ const t = vals('actions').filter(a => a.projectId === pid); return {total:t.length, done:t.filter(a => a.status === 'done').length}; }
 function checkProgress(a){ const l = a.checklist || []; return l.length ? `${l.filter(x => x.done).length}/${l.length}` : ''; }
@@ -1346,8 +1526,8 @@ function taskCard(a, showCircle){
     <div class="row" style="justify-content:space-between;gap:6px">${a.owner?`<span class="person" style="font-size:12.5px"><span class="av">${esc(initials(a.owner))}</span>${esc(a.owner)}</span>`:'<span class="bl-meta">No owner</span>'}${dueHTML(a)}</div>
   </div>`;
 }
-function taskRow(a, showCircle){
-  const [l,cls] = A_STATUS[a.status||'todo']; const pr = S.projects[a.projectId];
+function taskRow(a, showCircle, hideProj){
+  const [l,cls] = A_STATUS[a.status||'todo']; const pr = hideProj ? null : S.projects[a.projectId];
   return `<tr><td><a href="#" data-act="editAction" data-id="${a.id}" style="color:var(--ink);font-weight:700;text-decoration:none">${esc(a.task)}</a>${pr?`<div class="bl-meta">${esc(pr.name)}</div>`:''}${a.meetingId&&S.meetings[a.meetingId]?`<div class="bl-meta"><a href="#meeting-${a.meetingId}">From the meeting on ${mdy(S.meetings[a.meetingId].date)}</a></div>`:''}</td>${showCircle?`<td><a href="#circle-${a.circleId}-actions">${esc(circleName(a.circleId))}</a></td>`:''}<td>${esc(a.owner||'—')}</td><td>${dueHTML(a)||'—'}</td><td><button class="st ${cls}" style="background:none;cursor:${canWrite?'pointer':'default'}" data-act="cycleAction" data-id="${a.id}" type="button" title="Change status">${l}</button></td></tr>`;
 }
 function cWork(c){
@@ -1357,12 +1537,12 @@ function cWork(c){
   else if(workProject !== 'all') tasks = tasks.filter(a => a.projectId === workProject);
   const sortT = (a,b) => ({high:0,normal:1,low:2}[a.priority||'normal'] - {high:0,normal:1,low:2}[b.priority||'normal']) || (a.due||'9').localeCompare(b.due||'9');
   const projPanel = `<section class="panel"><div class="ph"><h2>Projects</h2><button class="btn sm w" data-act="newProject" data-circle="${c.id}" type="button">New project</button></div>
-    ${projects.length ? `<div class="pgrid">${projects.map(p => { const pg = projProgress(p.id); const pct = pg.total ? Math.round(pg.done/pg.total*100) : 0; return `<div class="pcard ${workProject===p.id?'on':''}"><div class="row" style="justify-content:space-between"><a href="#" class="ttl" data-act="workProject" data-p="${p.id}">${esc(p.name)}</a>${stChip(P_STATUS[p.status||'active'][0], P_STATUS[p.status||'active'][1])}</div>${p.description?`<p class="muted clamp" style="font-size:13.5px">${esc(p.description)}</p>`:''}<div class="pbar"><i style="width:${pct}%"></i></div><div class="row" style="justify-content:space-between"><span class="bl-meta">${pg.done} of ${pg.total} tasks done${p.owner?` · ${esc(p.owner)}`:''}${p.due?` · due ${mdy(p.due)}`:''}</span><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button></div></div>`; }).join('')}</div>` : `<p class="muted">Group related tasks into projects to see progress at a glance.</p>`}
+    ${projects.length ? `<div class="pgrid">${projects.map(p => { const pg = projProgress(p.id); const pct = pg.total ? Math.round(pg.done/pg.total*100) : 0; return `<div class="pcard ${workProject===p.id?'on':''}"><div class="row" style="justify-content:space-between"><a href="#" class="ttl" data-act="workProject" data-p="${p.id}">${esc(p.name)}</a>${stChip(P_STATUS[p.status||'active'][0], P_STATUS[p.status||'active'][1])}</div>${p.description?`<p class="muted clamp" style="font-size:13.5px">${esc(p.description)}</p>`:''}<div class="pbar"><i style="width:${pct}%"></i></div><div class="row" style="justify-content:space-between"><span class="bl-meta">${pg.done} of ${pg.total} tasks done${p.owner?` · ${esc(p.owner)}`:''}${p.due?` · due ${mdy(p.due)}`:''}</span><div class="row" style="gap:6px"><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(c.id, p.id, p.name)}</div></div></div>`; }).join('')}</div>` : `<p class="muted">Group related tasks into projects to see progress at a glance.</p>`}
   </section>`;
   const filt = [['all','All tasks'],['none','No project'],...projects.map(p => [p.id, p.name])];
   const toolbar = `<div class="row" style="justify-content:space-between">
     <div class="filters">${filt.map(([k,l]) => `<button type="button" data-act="workProject" data-p="${k}" class="${workProject===k?'on':''}">${esc(l)}</button>`).join('')}</div>
-    <div class="row"><div class="seg" role="group" aria-label="View">${[['board','Board'],['people','By person'],['list','List']].map(([k,l]) => `<button type="button" data-act="workView" data-v="${k}" class="${workView===k?'on':''}">${l}</button>`).join('')}</div><button class="btn sm pri w" data-act="newAction" data-circle="${c.id}" data-project="${workProject!=='all'&&workProject!=='none'?workProject:''}" type="button">New task</button></div></div>`;
+    <div class="row"><div class="seg" role="group" aria-label="View">${[['board','Board'],['people','By person'],['projects','By project'],['list','List']].map(([k,l]) => `<button type="button" data-act="workView" data-v="${k}" class="${workView===k?'on':''}">${l}</button>`).join('')}</div><button class="btn sm pri w" data-act="newAction" data-circle="${c.id}" data-project="${workProject!=='all'&&workProject!=='none'?workProject:''}" type="button">New task</button></div></div>`;
   let body = '';
   if(!tasks.length) body = emptyBox('No tasks here yet. Add one, or record action items in meeting minutes.');
   else if(workView === 'board') body = `<div class="board">${Object.entries(A_STATUS).map(([k,[l,cls]]) => { const col = tasks.filter(a => (a.status||'todo') === k).sort(sortT); return `<div class="col" data-status="${k}"><div class="row" style="justify-content:space-between"><b class="st ${cls}" style="border:0;padding:0">${l}</b><span class="mono muted">${col.length}</span></div>${col.map(a => taskCard(a)).join('')}</div>`; }).join('')}</div><p class="bl-meta">Drag a card to change its status, or open it to edit.</p>`;
@@ -1371,8 +1551,22 @@ function cWork(c){
     const names = Object.keys(groups).sort((a,b) => (a===''?1:0)-(b===''?1:0) || a.localeCompare(b));
     body = names.length ? `<div class="cols3">${names.map(n => `<section class="panel"><div class="ph">${n?person(n):'<b>Unassigned</b>'}<span class="mono muted">${groups[n].length} open</span></div><div class="stack">${groups[n].sort(sortT).map(a => taskCard(a)).join('')}</div></section>`).join('')}</div>` : emptyBox('Every task here is done.');
   }
+  else if(workView === 'projects') body = projectGroups(projects.filter(p => workProject === 'all' || workProject === p.id), tasks, false, workProject === 'all' || workProject === 'none');
   else body = `<section class="panel"><div class="tscroll"><table><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.slice().sort((a,b)=>(a.status==='done')-(b.status==='done') || sortT(a,b)).map(a => taskRow(a)).join('')}</tbody></table></div></section>`;
   return projPanel + toolbar + body;
+}
+function projectGroups(projects, tasks, showCircle, withLoose){
+  const sortT = (a,b) => (a.status==='done')-(b.status==='done') || ({high:0,normal:1,low:2}[a.priority||'normal'] - {high:0,normal:1,low:2}[b.priority||'normal']) || (a.due||'9').localeCompare(b.due||'9');
+  const head = `<thead><tr><th>Task</th>${showCircle?'<th>Circle</th>':''}<th>Owner</th><th>Due</th><th>Status</th></tr></thead>`;
+  const out = projects.map(p => {
+    const t = tasks.filter(a => a.projectId === p.id).sort(sortT); const {pg, pct} = projMeta(p); const [sl, sc] = P_STATUS[p.status||'active'];
+    return `<section class="panel pgroup"><div class="ph"><div class="stack" style="gap:4px;min-width:0"><div class="row" style="gap:8px"><h2 style="margin:0">${esc(p.name)}</h2>${stChip(sl, sc)}</div>
+      <span class="bl-meta">${showCircle?`<a href="#circle-${p.circleId}-actions">${esc(circleName(p.circleId))}</a> · `:''}${pg.done} of ${pg.total} done${p.owner?` · ${esc(p.owner)}`:''}${p.due?` · target ${mdy(p.due)}`:''}</span></div>
+      <div class="row" style="gap:8px;flex:none"><div class="pbar" style="width:90px"><i style="width:${pct}%"></i></div><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}</div></div>
+      ${t.length ? `<div class="tscroll"><table>${head}<tbody>${t.map(a => taskRow(a, showCircle, true)).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No tasks to show. Use + to add one.</p>'}</section>`;
+  });
+  if(withLoose){ const loose = tasks.filter(a => !a.projectId || !S.projects[a.projectId]).sort(sortT); if(loose.length) out.push(`<section class="panel pgroup"><div class="ph"><h2 style="margin:0">No project</h2><span class="mono muted">${loose.length}</span></div><div class="tscroll"><table>${head}<tbody>${loose.map(a => taskRow(a, showCircle)).join('')}</tbody></table></div></section>`); }
+  return out.length ? `<div class="stack">${out.join('')}</div>` : emptyBox('No projects or tasks match.');
 }
 function vWork(){
   const all = vals('actions').filter(a => S.circles[a.circleId]);
@@ -1385,18 +1579,39 @@ function vWork(){
   if(workPerson === '__none') list = list.filter(a => !a.owner); else if(workPerson) list = list.filter(a => a.owner === workPerson);
   if(workCircle) list = list.filter(a => a.circleId === workCircle);
   list.sort((a,b) => (a.due||'9').localeCompare(b.due||'9'));
-  return `<div class="head"><div class="t"><span class="eyebrow">Across all circles</span><h1>Work</h1><p>Every task in every circle, and who is responsible for it. Each circle manages its own projects and tasks on its Work tab.</p></div></div>
-  <section class="panel"><div class="ph"><h2>Who is responsible</h2><span class="bl-meta">${open.length} open task${open.length===1?'':'s'}${unassigned?` · ${unassigned} without an owner`:''}</span></div>
+  const so = {active:0, paused:1, done:2};
+  let projs = vals('projects').filter(p => S.circles[p.circleId]);
+  if(workCircle) projs = projs.filter(p => p.circleId === workCircle);
+  if(!workDone) projs = projs.filter(p => p.status !== 'done');
+  projs.sort((a,b) => (so[a.status]??0)-(so[b.status]??0) || circleName(a.circleId).localeCompare(circleName(b.circleId)) || (a.name||'').localeCompare(b.name||''));
+  const modes = [['tasks','Tasks'],['projects','Projects'],['grouped','Tasks by project']];
+  const personSel = workMode === 'projects' ? '' : `<select id="wf-person" aria-label="Person" class="sel"><option value="">Everyone</option><option value="__none" ${workPerson==='__none'?'selected':''}>No owner</option>${owners.map(o => `<option value="${esc(o)}" ${o===workPerson?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const tools = `<div class="ptools">
+    <div class="seg" role="group" aria-label="View">${modes.map(([k,l]) => `<button type="button" data-act="workMode" data-v="${k}" class="${workMode===k?'on':''}">${l}</button>`).join('')}</div>
+    ${personSel}
+    <select id="wf-circle" aria-label="Circle" class="sel"><option value="">All circles</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===workCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    <label class="chk"><input type="checkbox" id="wf-done" ${workDone?'checked':''}> Show done</label>
+  </div>`;
+  let body;
+  if(workMode === 'projects'){
+    body = projs.length ? `<section class="panel"><div class="tscroll"><table><thead><tr><th>Project</th><th>Circle</th><th>Coordinator</th><th>Target</th><th>Progress</th><th>Status</th><th></th></tr></thead><tbody>${projs.map(p => { const {pg, pct} = projMeta(p); const [sl, sc] = P_STATUS[p.status||'active']; return `<tr>
+      <td><a href="#" data-act="openProject" data-id="${p.id}" style="color:var(--ink);font-weight:700;text-decoration:none">${esc(p.name)}</a>${p.description?`<div class="muted clamp" style="font-size:13px">${esc(p.description)}</div>`:''}</td>
+      <td><a href="#circle-${p.circleId}-actions">${esc(circleName(p.circleId))}</a></td><td>${esc(p.owner||'—')}</td><td class="mono" style="white-space:nowrap">${mdy(p.due)||'—'}</td>
+      <td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="pbar" style="width:70px"><i style="width:${pct}%"></i></div><span class="mono muted" style="white-space:nowrap">${pg.done}/${pg.total}</span></div></td>
+      <td>${stChip(sl, sc)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}</div></td></tr>`; }).join('')}</tbody></table></div></section>` : emptyBox('No projects match. Each circle creates projects on its Work tab.');
+  } else if(workMode === 'grouped'){
+    const shown = workPerson ? projs.filter(p => list.some(a => a.projectId === p.id)) : projs;
+    body = projectGroups(shown, list, true, true);
+  } else {
+    body = `<section class="panel"><div class="ph"><h2>Who is responsible</h2><span class="bl-meta">${open.length} open task${open.length===1?'':'s'}${unassigned?` · ${unassigned} without an owner`:''}</span></div>
     ${summary.length ? `<div class="tscroll"><table><thead><tr><th>Person</th><th>Open</th><th>Overdue</th><th>Circles</th></tr></thead><tbody>${summary.map(x => `<tr><td><a href="#" data-act="workPerson" data-p="${esc(x.o)}" style="text-decoration:none;color:var(--ink)">${person(x.o,false)}</a></td><td class="mono">${x.n}</td><td class="mono" style="${x.late?'color:var(--bad)':''}">${x.late}</td><td>${x.circles.map(id => `<a href="#circle-${id}-actions">${esc(circleName(id))}</a>`).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No open tasks with an owner.</p>'}
   </section>
-  <section class="panel"><div class="ph"><h2>Tasks</h2>
-    <div class="row">
-      <select id="wf-person" aria-label="Person" class="sel"><option value="">Everyone</option><option value="__none" ${workPerson==='__none'?'selected':''}>No owner</option>${owners.map(o => `<option value="${esc(o)}" ${o===workPerson?'selected':''}>${esc(o)}</option>`).join('')}</select>
-      <select id="wf-circle" aria-label="Circle" class="sel"><option value="">All circles</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===workCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
-      <label class="chk"><input type="checkbox" id="wf-done" ${workDone?'checked':''}> Show done</label>
-    </div></div>
+  <section class="panel"><div class="ph"><h2>Tasks</h2><span class="bl-meta">${list.length} shown</span></div>
     ${list.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>Circle</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${list.map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No tasks match.</p>'}
   </section>`;
+  }
+  return `<div class="head"><div class="t"><span class="eyebrow">Across all circles</span><h1>Work</h1><p>Every task and project in every circle, and who is responsible. Each circle creates its own projects and tasks on its Work tab.</p></div></div>
+  ${tools}${body}`;
 }
 function checkRow(x={}){ const k = uid('q'); return `<div class="ckrow" data-k="${k}"><input type="checkbox" id="kd-${k}" ${x.done?'checked':''} aria-label="Done"><input id="kt-${k}" value="${esc(x.text)}" placeholder="Step" class="ckin"><button class="btn sm ghost" data-act="removeCk" type="button" aria-label="Remove step">Remove</button></div>`; }
 function editAction(id, circleId, projectId){
@@ -1690,8 +1905,8 @@ const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/
 let sb = null, me = {email:'', role:'', name:''}, isAdmin = false, membersList = null, sbHandled = false, lastInvite = '', visibility = 'private';
 const ROLE_INFO = {
   admin:['Admin','Everything members can do, plus invite people, change access, and change the name and logo.'],
-  member:['Member','Read everything and create or edit circles, meetings, proposals, work, people and the wiki.'],
-  viewer:['Viewer','Read everything except contact details. Cannot change anything.']
+  member:['Member','Read everything, see emergency contacts, and create or edit circles, meetings, proposals, work and the wiki. Can edit people who have not signed in yet.'],
+  viewer:['Viewer','Read everything except contact details. Can only change their own profile.']
 };
 function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
 function appName(){ return (S.org.main||{}).name || (window.CC_CONFIG||{}).appName || 'Sociocracy'; }
@@ -1749,8 +1964,8 @@ async function afterSignIn(session){
   isAdmin = me.role === 'admin'; canWrite = me.role !== 'viewer';
   hideGate(); mode = 'loading'; render();
   await loadAllDocs(); subscribeDocs();
-  if(me.name) await ensurePerson(me.name, me.email);
-  else if(isAdmin) memberNameModal(me.email, '', 'Add the name others will see. You will appear in People and can be added to circles.');
+  await linkMyProfile(me.name);
+  if(!personByEmail(me.email) && isAdmin) memberNameModal(me.email, '', 'Add the name others will see. You will appear in People and can be added to circles.');
 }
 async function loadAllDocs(){
   const all = []; let from = 0;
@@ -1804,7 +2019,7 @@ function vAccess(){
   </section>
   <section class="panel"><div class="ph"><h2>People with access</h2><span class="bl-meta">${counts.admin} admin${counts.admin===1?'':'s'} · ${counts.member} member${counts.member===1?'':'s'} · ${counts.viewer} viewer${counts.viewer===1?'':'s'}</span></div>
     <div class="tscroll"><table><thead><tr><th>Email</th><th>Name</th><th>Access</th><th></th></tr></thead><tbody>
-      ${membersList.map(m => `<tr><td class="mono">${esc(m.email)}${m.email===me.email?' <span class="chip">You</span>':''}</td><td>${m.person_name ? `${person(m.person_name)} <button class="btn sm ghost" data-act="memberName" data-email="${esc(m.email)}" data-name="${esc(m.person_name)}" type="button">Change</button>` : `<button class="btn sm" data-act="memberName" data-email="${esc(m.email)}" type="button">Add name</button>`}</td>
+      ${membersList.map(m => `<tr><td class="mono">${esc(m.email)}${m.email===me.email?' <span class="chip">You</span>':''}</td><td>${(personByEmail(m.email)?.name || m.person_name) ? `${person(personByEmail(m.email)?.name || m.person_name)} <button class="btn sm ghost" data-act="memberName" data-email="${esc(m.email)}" data-name="${esc(m.person_name)}" type="button">Change</button>` : `<button class="btn sm" data-act="memberName" data-email="${esc(m.email)}" type="button">Add name</button>`}</td>
         <td><select class="sel mrole" data-email="${esc(m.email)}" aria-label="Access for ${esc(m.email)}">${Object.entries(ROLE_INFO).map(([k,[l]]) => `<option value="${k}" ${k===m.role?'selected':''}>${l}</option>`).join('')}</select></td>
         <td><button class="btn sm ghost danger" data-act="memberRemove" data-email="${esc(m.email)}" type="button">Remove</button></td></tr>`).join('')}
     </tbody></table></div>
@@ -1827,10 +2042,29 @@ function pickedMembers(){
   const extra = gv('f-members-new').split(',').map(x => x.trim()).filter(Boolean);
   return [...new Set([...picked, ...extra])];
 }
+function personByEmail(e){ e = String(e||'').toLowerCase(); return e ? vals('people').find(p => (p.ownerEmail||'').toLowerCase() === e) : null; }
+function canEditPerson(rec){
+  if(mode !== 'supabase') return canWrite;
+  if(isAdmin) return true;
+  if(rec && rec.ownerEmail) return rec.ownerEmail.toLowerCase() === me.email;
+  return canWrite;
+}
+async function linkMyProfile(memberName){
+  let rec = personByEmail(me.email);
+  if(!rec && memberName){
+    const byName = personRec(memberName);
+    if(byName && !byName.ownerEmail){ rec = {...clone(byName), ownerEmail:me.email}; if(!(await put('people', rec))) rec = null; }
+    else if(!byName){ rec = {id:uid('p'), name:memberName, ownerEmail:me.email, joined:todayISO(), updated:todayISO()}; if(!(await put('people', rec))) rec = null; }
+  }
+  if(rec){ me.name = rec.name; me.pid = rec.id; if(!(S.contacts[rec.id]?.email)) await put('contacts', {...(S.contacts[rec.id]||{}), id:rec.id, email:me.email}); render(); }
+}
 async function ensurePerson(name, email){
   name = String(name||'').trim(); if(!name || !canWrite) return null;
   let rec = personRec(name);
-  if(!rec){ rec = {id:uid('p'), name, joined:todayISO(), updated:todayISO()}; if(!(await put('people', rec))) return null; }
+  const owner = mode === 'supabase' && email ? email.toLowerCase() : '';
+  if(!rec){ rec = {id:uid('p'), name, joined:todayISO(), updated:todayISO(), ...(owner ? {ownerEmail:owner} : {})}; if(!(await put('people', rec))) return null; }
+  else if(owner && isAdmin && !rec.ownerEmail){ rec = {...clone(rec), ownerEmail:owner}; await put('people', rec); }
+  else if(owner && rec.ownerEmail && rec.ownerEmail !== owner) toast(`${name} is already linked to another account.`);
   if(email && !(S.contacts[rec.id]?.email)) await put('contacts', {...(S.contacts[rec.id]||{}), id:rec.id, email});
   return rec;
 }
@@ -1883,16 +2117,16 @@ function loadLabel(p){ const r = p.roles.length; return r ? `${r} role${r===1?''
 function peopleList(){
   const rows = peopleRows();
   if(!rows.length) return emptyBox(allPeopleNames().length ? 'Nobody matches these filters.' : 'No people yet. People appear here when they are added to a circle, or you can add them directly.', `<button class="btn sm w" data-act="newPerson" type="button">Add a person</button>`);
-  if(peopleView === 'list') return `<div class="tscroll"><table class="ptable"><thead><tr><th>Person</th><th>Circles</th><th>Roles</th><th>Open tasks</th><th>Skills</th><th>Availability</th></tr></thead><tbody>${rows.map(p => `<tr>
-    <td><a class="person plain" href="#person-${pid(p.n)}">${avatar(p.n)}<b>${esc(p.n)}</b></a></td>
+  if(peopleView === 'list') return `<div class="tscroll"><table class="ptable"><thead><tr><th>Person</th><th>Circles</th><th>Roles</th><th>Open tasks</th><th>Skills</th></tr></thead><tbody>${rows.map(p => `<tr>
+    <td><a class="person plain" href="#person-${pid(p.n)}">${avatar(p.n)}<span><b>${esc(p.n)}</b>${p.rec?.pronouns?`<br><span class="pron">${esc(p.rec.pronouns)}</span>`:''}</span></a></td>
     <td>${p.circles.map(c => `<a href="#circle-${c.id}">${esc(c.name)}</a>`).join(', ') || '<span class="muted">—</span>'}</td>
     <td>${p.roles.map(r => `${esc(r.role)} <span class="muted">· ${esc(r.c.name)}</span>`).join('<br>') || '<span class="muted">—</span>'}</td>
     <td class="mono">${p.tasks.length}${p.tasks.some(a => a.due && daysUntil(a.due) < 0) ? ' <span style="color:var(--bad)">· overdue</span>' : ''}</td>
     <td>${splitList(p.rec?.skills).slice(0,3).map(esc).join(', ') || '<span class="muted">—</span>'}</td>
-    <td>${esc(p.rec?.availability || '') || '<span class="muted">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+</tr>`).join('')}</tbody></table></div>`;
   return `<div class="ppl-grid">${rows.map(p => `<a class="ppl-card" href="#person-${pid(p.n)}">
     ${avatar(p.n, 'av-lg')}
-    <b class="pc-name">${esc(p.n)}</b>
+    <b class="pc-name">${esc(p.n)}</b>${p.rec?.pronouns?`<span class="pron">${esc(p.rec.pronouns)}</span>`:''}
     ${p.roles.length ? `<div class="pc-roles">${p.roles.slice(0,3).map(r => `<span class="chip">${esc(r.role)} · ${esc(r.c.name.replace(/ Circle$/,''))}</span>`).join('')}${p.roles.length>3?`<span class="chip">+${p.roles.length-3}</span>`:''}</div>` : ''}
     <span class="bl-meta">${p.circles.length} circle${p.circles.length===1?'':'s'} · ${loadLabel(p)}${p.tasks.length?` · ${p.tasks.length} open task${p.tasks.length===1?'':'s'}`:''}</span>
     ${p.rec?.skills ? `<span class="muted pc-skills">${esc(splitList(p.rec.skills).slice(0,4).join(' · '))}</span>` : ''}
@@ -1917,16 +2151,16 @@ function vPerson(id){
   const def = (t, v) => v ? `<div class="def"><span class="eyebrow">${t}</span><div class="txt">${esc(v)}</div></div>` : '';
   const chips = (t, v) => splitList(v).length ? `<div class="def"><span class="eyebrow">${t}</span><div class="row">${splitList(v).map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div></div>` : '';
   return `<nav class="crumb"><a href="#people">People</a><span>/</span><span>${esc(n)}</span></nav>
-  <div class="prof-head">${avatar(n, 'av-xl')}<div class="t"><h1>${esc(n)}</h1><div class="les-meta"><span>${loadLabel({roles})}</span><span>${circles.length} circle${circles.length===1?'':'s'}</span>${rec.joined?`<span>Joined <span class="mono">${mdy(rec.joined)}</span></span>`:''}${rec.example?'<span class="chip">Example</span>':''}</div>${rec.bio?`<p class="lede">${esc(rec.bio)}</p>`:''}</div>
-    <div class="row"><button class="btn w" data-act="editPerson" data-name="${esc(n)}" type="button">${rec.id?'Edit profile':'Complete profile'}</button></div></div>
+  <div class="prof-head">${avatar(n, 'av-xl')}<div class="t"><h1>${esc(n)}${rec.pronouns?` <span class="pron-h">${esc(rec.pronouns)}</span>`:''}</h1><div class="les-meta">${mode==='supabase' && rec.ownerEmail && rec.ownerEmail===me.email ? '<span class="chip">This is you</span>' : ''}<span>${loadLabel({roles})}</span><span>${circles.length} circle${circles.length===1?'':'s'}</span>${rec.joined?`<span>Joined <span class="mono">${mdy(rec.joined)}</span></span>`:''}${rec.example?'<span class="chip">Example</span>':''}</div>${rec.bio?`<p class="lede">${esc(rec.bio)}</p>`:''}</div>
+    <div class="row">${canEditPerson(rec.id ? rec : null) ? `<button class="btn" data-act="editPerson" data-name="${esc(n)}" type="button">${rec.id?'Edit profile':'Complete profile'}</button>` : ''}</div></div>
   <div class="course-body">
     <div class="course-main">
       <section class="panel"><h2>Circles and roles</h2>${circles.length ? `<div class="tscroll"><table><thead><tr><th>Circle</th><th>Roles</th><th>Term ends</th></tr></thead><tbody>${circles.map(c => { const rs = roles.filter(r => r.c.id === c.id); return `<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a><div class="bl-meta">${CTYPES[c.type]||''}</div></td><td>${rs.map(r => esc(r.role)).join('<br>') || '<span class="muted">Member</span>'}</td><td class="mono">${rs.map(r => mdy(r.termEnd) || '—').join('<br>') || '—'}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted">Not in any circle yet.</p>'}</section>
       <section class="panel"><div class="ph"><h2>Open tasks</h2><a href="#work" class="bl-meta">All work</a></div>${tasks.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>Circle</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No open tasks.</p>'}</section>
     </div>
     <aside class="course-side">
+      ${contact && (contact.ecName || contact.ecPhone) ? `<div class="side-card ec"><span class="eyebrow">Emergency contact</span>${contact.ecName?`<div>${esc(contact.ecName)}</div>`:''}${contact.ecPhone?`<div class="row" style="gap:6px"><span class="mono">${esc(contact.ecPhone)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.ecPhone)}" type="button">Copy</button></div>`:''}<span class="bl-meta">Visible only to people who can edit the workspace.</span></div>` : ''}
       <div class="side-card"><span class="eyebrow">Contact</span>${contact && (contact.email || contact.phone) ? `${contact.channel?`<div><b>Prefers:</b> ${esc(contact.channel)}</div>`:''}${contact.email?`<div class="row" style="gap:6px"><span class="mono" style="overflow-wrap:anywhere">${esc(contact.email)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.email)}" type="button">Copy</button></div>`:''}${contact.phone?`<div class="row" style="gap:6px"><span class="mono">${esc(contact.phone)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.phone)}" type="button">Copy</button></div>`:''}` : `<p class="muted" style="font-size:13.5px">${rec.id ? 'No contact details shared, or only members can see them.' : 'No profile yet.'}</p>`}</div>
-      ${rec.availability ? `<div class="side-card"><span class="eyebrow">Availability</span><div>${esc(rec.availability)}</div></div>` : ''}
       ${chips('Skills', rec.skills) || chips('Interests', rec.interests) ? `<div class="side-card">${chips('Skills', rec.skills)}${chips('Interests', rec.interests)}</div>` : ''}
       ${rec.buddy ? `<div class="side-card"><span class="eyebrow">Buddy</span>${person(rec.buddy)}</div>` : ''}
     </aside>
@@ -1951,29 +2185,36 @@ async function renamePerson(o, n){
 }
 function editPerson(name){
   const existing = name ? personRec(name) : null;
+  if(existing && !canEditPerson(existing)){ toast('Only this person or an admin can edit this profile.'); return; }
   const p = existing ? clone(existing) : {id:uid('p'), name:name||''};
   const ct = clone(S.contacts[p.id] || {});
+  const canRename = !existing || canWrite;
+  const canDelete = existing && (mode !== 'supabase' ? canWrite : (isAdmin || (canWrite && !existing.ownerEmail)));
   curPhoto = p.photo || '';
   const body = `<div class="photo-row"><span id="pp-wrap">${curPhoto ? `<img class="av-xl" src="${esc(curPhoto)}" alt="">` : `<span class="av-xl">${esc(initials(p.name||'?'))}</span>`}</span>
     <div class="f"><span>Photo</span><input type="file" id="pp-file" accept="image/*"><small>Cropped to a square and made small, so it loads fast.</small>${curPhoto?'<button class="btn sm ghost" data-act="removePhoto" type="button">Remove photo</button>':''}</div></div>
-  ${fText('pe-name','Name',p.name,{hint:existing?'Changing the name updates it everywhere it appears: circles, roles, tasks and minutes.':''})}
+  <div class="grid2">${fText('pe-name','Name',p.name,{hint:!canRename?'Ask an admin to change your name.':existing?'Changing the name updates it everywhere: circles, roles, tasks and minutes.':''})}${fText('pe-pron','Pronouns',p.pronouns,{ph:'e.g. she/her, he/him, they/them',hint:'Optional. Shown next to the name.'})}</div>
   ${fArea('pe-bio','Short bio',p.bio,{rows:3,ph:'What you do, and how you got involved'})}
   <div class="grid2">${fText('pe-skills','Skills',p.skills,{ph:'e.g. facilitation, bookkeeping, design',hint:'Separate with commas.'})}${fText('pe-int','Interests',p.interests,{ph:'e.g. events, gardening',hint:'Separate with commas.'})}</div>
-  <div class="grid2">${fText('pe-avail','Availability',p.availability,{ph:'e.g. Weekday evenings · away in August'})}${fDate('pe-joined','Joined on',p.joined)}</div>
-  ${fText('pe-buddy','Buddy',p.buddy,{list:1,hint:'For new members: who helps them settle in.'})}
-  <fieldset class="fs"><legend>Contact</legend><p class="hint">Only members who can edit the workspace see contact details. All fields are optional.</p>
-    <div class="grid3">${fText('pe-email','Email',ct.email)}${fText('pe-phone','Phone',ct.phone)}${fText('pe-chan','Preferred channel',ct.channel,{ph:'e.g. Signal, email'})}</div></fieldset>`;
+  <div class="grid2">${fDate('pe-joined','Joined on',p.joined)}${fText('pe-buddy','Buddy',p.buddy,{list:1,hint:'For new members: who helps them settle in.'})}</div>
+  <fieldset class="fs"><legend>Contact</legend><p class="hint">Only people who can edit the workspace (Admins and Members) see contact details${mode==='supabase'?', plus the person themselves':''}. All fields are optional.</p>
+    <div class="grid3">${fText('pe-email','Email',ct.email)}${fText('pe-phone','Phone',ct.phone)}${fText('pe-chan','Preferred channel',ct.channel,{ph:'e.g. Signal, email'})}</div></fieldset>
+  <fieldset class="fs"><legend>Emergency contact</legend><p class="hint">Who to contact if something happens. Same visibility as contact details.</p>
+    <div class="grid2">${fText('pe-ecname','Name and relationship',ct.ecName,{ph:'e.g. Marta Puig, sister'})}${fText('pe-ecphone','Phone',ct.ecPhone)}</div></fieldset>`;
   openModal(existing ? 'Edit profile' : (name ? 'Complete profile' : 'Add a person'), body, async () => {
-    const nm = gv('pe-name'); if(!nm){ toast('Add a name.'); return false; }
+    const nm = canRename ? gv('pe-name') : p.name; if(!nm){ toast('Add a name.'); return false; }
     const dup = personRec(nm); if(dup && dup.id !== p.id){ toast('Someone with this name already has a profile.'); return false; }
     const oldName = existing?.name || name || '';
-    const ok = await put('people', {...p, name:nm, photo:curPhoto||'', bio:gv('pe-bio'), skills:gv('pe-skills'), interests:gv('pe-int'), availability:gv('pe-avail'), joined:gd('pe-joined'), buddy:gv('pe-buddy'), updated:todayISO()});
-    if(!ok) return false;
-    const c2 = {email:gv('pe-email'), phone:gv('pe-phone'), channel:gv('pe-chan')};
-    if(c2.email || c2.phone || c2.channel || S.contacts[p.id]) await put('contacts', {...ct, ...c2, id:p.id, example:!!p.example});
-    if(oldName && oldName !== nm) await renamePerson(oldName, nm);
+    const rec = {...p, name:nm, pronouns:gv('pe-pron'), photo:curPhoto||'', bio:gv('pe-bio'), skills:gv('pe-skills'), interests:gv('pe-int'), joined:gd('pe-joined'), buddy:gv('pe-buddy'), updated:todayISO()};
+    delete rec.availability;
+    if(!(await put('people', rec))) return false;
+    const c2 = {email:gv('pe-email'), phone:gv('pe-phone'), channel:gv('pe-chan'), ecName:gv('pe-ecname'), ecPhone:gv('pe-ecphone')};
+    if(Object.values(c2).some(Boolean) || S.contacts[p.id]) await put('contacts', {...ct, ...c2, id:p.id, example:!!p.example});
+    if(oldName && oldName !== nm && canWrite) await renamePerson(oldName, nm);
+    if(rec.ownerEmail && rec.ownerEmail === me.email) me.name = nm;
     toast('Profile saved'); location.hash = 'person-' + p.id; return true;
-  }, {wide:true, saveLabel:'Save profile', onDelete: existing ? async () => { await remove('people', p.id); if(S.contacts[p.id]) await remove('contacts', p.id); location.hash = 'people'; toast('Profile deleted. The name stays in circles and tasks.'); return true; } : null, deleteLabel:'Delete profile'});
+  }, {wide:true, saveLabel:'Save profile', onDelete: canDelete ? async () => { await remove('people', p.id); if(S.contacts[p.id]) await remove('contacts', p.id); location.hash = 'people'; toast('Profile deleted. The name stays in circles and tasks.'); return true; } : null, deleteLabel:'Delete profile'});
+  if(!canRename) setTimeout(() => { const el = $('#pe-name'); if(el) el.disabled = true; }, 0);
 }
 
 /* ============ Double-link flow: send topics between circles ============ */
@@ -2227,11 +2468,22 @@ const ACTS = {
   newMeeting: d => editMeeting(null, d.circle),
   editMeeting: d => editMeeting(d.id),
   newProposal: d => editProposal(null, d.circle),
+  decide: d => recordDecision(d.id, d.v),
+  undoDecision: async d => { const p = clone(S.proposals[d.id]); if(!p) return; const back = p.stageBefore || 'ready'; ['decided','reviewDate','droppedOn','dropReason','affects','noMeeting'].forEach(k => delete p[k]); p.stage = back; if(await put('proposals', p)) toast('Decision cleared. Posts already on the community board stay there.'); },
+
   editProposal: d => editProposal(d.id),
+  stepDo: d => stepModal(d.id, d.i),
+  stepSkip: async d => { const p = clone(S.proposals[d.id]); if(!p) return; p.step = Math.max(p.step||0, +d.i + 1); if(await put('proposals', p)) toast('Next: ' + P_STEPS[+d.i + 1].label); },
+  recordObj: d => objModal(d.id),
+  integrateObj: d => integrateModal(d.id, d.i),
+  withdrawProposal: d => openModal('Withdraw this proposal?', '<p>The proposal stays in the record as withdrawn. You can reopen it later.</p>', async () => { const p = clone(S.proposals[d.id]); p.stageBefore = p.stage; p.stage = 'withdrawn'; const ok = await put('proposals', p); if(ok) toast('Proposal withdrawn'); return ok; }, {saveLabel:'Withdraw'}),
+  reopenProposal: async d => { const p = clone(S.proposals[d.id]); if(!p) return; p.stage = p.stageBefore && p.stageBefore !== 'withdrawn' ? p.stageBefore : (p.proposal ? 'ready' : 'forming'); if(await put('proposals', p)) toast('Proposal reopened'); },
   newAction: d => editAction(null, d.circle, d.project),
   newProject: d => editProject(null, d.circle),
   editProject: d => editProject(d.id),
   workProject: d => { workProject = workProject === d.p && d.p !== 'all' ? 'all' : d.p; render(); },
+  workMode: d => { workMode = d.v; try{ localStorage.setItem('cc-workmode', d.v); }catch(e){} render(); },
+  openProject: d => { const p = S.projects[d.id]; if(!p) return; workProject = p.id; location.hash = 'circle-' + p.circleId + '-actions'; },
   workView: d => { workView = d.v; try{ localStorage.setItem('cc-workview', d.v); }catch(e){} render(); },
   workPerson: d => { workPerson = d.p; render(); const t = document.querySelectorAll('.panel')[1]; t && t.scrollIntoView({block:'start'}); },
   addCk: () => { $('#ckrows').insertAdjacentHTML('beforeend', checkRow()); const l = document.querySelectorAll('#ckrows .ckin'); l[l.length-1]?.focus(); },
@@ -2288,7 +2540,7 @@ const ACTS = {
     const n = {id:uid('p'), circleId:p.circleId, stage:'forming', created:todayISO(), title:'New approach: ' + p.title, author:'', driver:p.driver||'', understanding:p.understanding||'', dimensions:[p.dimensions, p.dropReason ? 'Must address: ' + p.dropReason : ''].filter(Boolean).join('\n'), ideas:'', objections:[], basedOn:p.id, example:!!p.example};
     if(!(await put('proposals', n))) return;
     const o = clone(S.proposals[d.id]); o.followUpId = n.id; await put('proposals', o);
-    location.hash = 'proposal-' + n.id; toast('New proposal started from the same need'); editProposal(n.id);
+    location.hash = 'proposal-' + n.id; toast('New proposal started from the same need');
   },
   newSelection: d => editSelection(null, d.circle, d.role),
   editSelection: d => editSelection(d.id),
@@ -2321,6 +2573,11 @@ document.addEventListener('keydown', e => {
 document.addEventListener('toggle', e => { if(e.target.matches && e.target.matches('details.mod[data-mod]')){ if(e.target.open) openMods.add(e.target.dataset.mod); else openMods.delete(e.target.dataset.mod); } }, true);
 document.addEventListener('toggle', e => { if(e.target.id === 'upcoming'){ upOpen = e.target.open; const h = e.target.querySelector('.up-hint'); if(h) h.textContent = upOpen ? 'Hide' : 'Show'; } }, true);
 document.addEventListener('change', e => {
+  if(e.target.id === 'prf-stage'){ propStage = e.target.value; render(); return; }
+  if(e.target.id === 'prf-circle'){ propCircle = e.target.value; render(); return; }
+  if(e.target.id === 'prf-aff'){ propAffects = e.target.value; render(); return; }
+  if(e.target.id === 'pa-everyone'){ document.querySelectorAll('#p-aff .pa-c').forEach(x => { x.disabled = e.target.checked; if(e.target.checked) x.checked = false; }); return; }
+  if(e.target.id === 'p-meet' || e.target.id === 'p-why' || e.target.id === 'p-rev'){ e.target.classList.remove('bad'); }
   if(e.target.id === 'pf-circle'){ peopleCircle = e.target.value; render(); return; }
   if(e.target.id === 'pf-role'){ peopleRole = e.target.value; render(); return; }
   if(e.target.classList && e.target.classList.contains('mrole')){ const el = e.target; sb.from('members').update({role:el.value}).eq('email', el.dataset.email).then(({error}) => { if(error) toast(/admin/i.test(error.message||'') ? 'A workspace needs at least one admin.' : 'Could not change access.'); else toast('Access updated'); if(el.dataset.email === me.email && !error){ me.role = el.value; isAdmin = me.role==='admin'; canWrite = me.role!=='viewer'; } fetchMembers(); }); return; }
