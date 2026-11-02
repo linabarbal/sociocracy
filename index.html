@@ -18,7 +18,7 @@
   --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#F4F4F5; --ink:#111113; --muted:#6E6E76; --line:#EAEAEC;
   --accent:#111113; --accent-ink:#FFFFFF; --accent-soft:#F2F2F3;
   --lead:#111113; --deleg:#8B8B93;
-  --ok:#1F8A4C; --warn:#A86400; --bad:#C2362F; --info:#2F5BD3;
+  --ok:#1F9D55; --warn:#D97706; --bad:#E0453A; --info:#2F6FEB;
   --t-mission:#9B4FE0; --t-general:#111113; --t-department:#2F5BD3; --t-helping:#D98300;
   --rail:#FAFAFA;
   --f-display:"Plus Jakarta Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
@@ -51,7 +51,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 h1,h2,h3,h4{font-family:var(--f-display);line-height:1.2;margin:0;text-wrap:balance;font-weight:700}
 h1{font-size:30px;letter-spacing:-.01em} h2{font-size:21px} h3{font-size:17px} h4{font-size:14px}
 p{margin:0}
-a{color:var(--accent)}
+a{color:var(--ink);text-decoration-color:color-mix(in srgb,var(--accent) 70%,transparent);text-underline-offset:2px}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 .mono{font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -420,7 +420,7 @@ h1{font-weight:700;letter-spacing:-.03em;font-size:32px} h2{font-weight:700;font
 .rail{background:var(--rail)}
 .nav a{font-weight:500;color:var(--muted);border-radius:0}
 .nav a:hover{background:transparent;color:var(--ink)}
-.nav a.on{background:transparent;color:var(--ink);font-weight:700;box-shadow:inset 2px 0 0 var(--ink)}
+.nav a.on{background:var(--accent-soft);color:var(--ink);font-weight:700;box-shadow:inset 3px 0 0 var(--accent);border-radius:0 8px 8px 0}
 .panel,.upcoming{border:0;border-top:1px solid var(--line);border-radius:0;padding-left:0;padding-right:0;box-shadow:none;background:transparent}
 .upcoming summary{padding-left:0;padding-right:0}.up-body{padding-left:0;padding-right:0}
 .up-hint{color:var(--ink)}
@@ -430,8 +430,8 @@ h1{font-weight:700;letter-spacing:-.03em;font-size:32px} h2{font-weight:700;font
 .btn{border-radius:8px;font-weight:600}
 .filters button{border:0;background:transparent;color:var(--muted);padding:4px 10px}
 .filters button:hover{color:var(--ink)}
-.filters button.on{background:var(--ink);color:var(--bg)}
-.seg button.on{background:var(--ink);color:var(--bg)}
+.filters button.on{background:var(--accent);color:var(--accent-ink)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
 .kind,.kind.decision,.kind.policy,.kind.role,.kind.input{background:transparent;border:1px solid var(--line);border-radius:999px;color:var(--ink)}
 .kind.input{border-color:var(--warn);color:var(--warn)}
 .chip{background:var(--sunk)}
@@ -487,6 +487,73 @@ select.bad,textarea.bad{border-color:var(--bad)}
 .dp-g button.sel{background:var(--ink);color:var(--surface)}
 .dp-f{display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
 input.date{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6E76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:34px;cursor:pointer}
+
+.dom-item .side{flex-direction:row!important;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.dom-item{align-items:center}
+
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.theme-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;font:inherit;color:var(--ink);position:relative;overflow:hidden}
+.theme-card:hover{border-color:var(--muted)}
+.theme-card.on{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 25%,transparent)}
+.tc-rail{display:block;width:100%;height:26px;border-radius:6px;background:linear-gradient(90deg,var(--rc) 0 38%,var(--surface) 38%);border:1px solid var(--line);position:relative}
+.tc-rail::after{content:"";position:absolute;right:10px;top:7px;width:34px;height:10px;border-radius:5px;background:var(--ac)}
+.sw-row{display:flex;gap:5px}.sw-row i{width:18px;height:18px;border-radius:50%;display:block}
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.cpick{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.cpick input[type=color]{width:40px;height:40px;border:0;padding:0;background:none;cursor:pointer;flex:none}
+.cpick input[type=color]::-webkit-color-swatch-wrapper{padding:0}.cpick input[type=color]::-webkit-color-swatch{border:1px solid var(--line);border-radius:50%}
+.cpick > span{display:flex;flex-direction:column;font-size:13.5px}
+
+/* Jira-style work rows */
+.jlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.jrow{display:grid;grid-template-columns:18px minmax(0,1fr) 92px 170px 116px;align-items:center;gap:10px;padding:6px 12px;min-height:38px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}
+.jlist.with-c .jrow{grid-template-columns:18px minmax(0,1fr) 150px 92px 170px 116px}
+.jrow:first-child{border-top:0}
+.jrow:hover{background:var(--sunk)}
+.jrow.done .j-t{color:var(--muted);text-decoration:line-through}
+.j-ic{display:grid;place-items:center}
+.j-sum{display:flex;align-items:center;gap:8px;min-width:0}
+.j-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.j-tag{flex:none;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:4px;background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.j-meta{font-size:12px;color:var(--muted);white-space:nowrap}
+.j-c{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.j-due{font-size:12.5px;color:var(--muted)}.j-due.late{color:var(--bad);font-weight:600}
+.j-as{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px}.j-as span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av-none{background:var(--sunk)!important;color:var(--muted)!important}
+.loz{justify-self:end;border:0;border-radius:4px;padding:3px 8px;font:700 11px/1.3 var(--f-body);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap;background:var(--sunk);color:var(--ink)}
+.loz.info{background:color-mix(in srgb,var(--info) 16%,var(--surface));color:color-mix(in srgb,var(--info) 80%,var(--ink))}
+.loz.warn{background:color-mix(in srgb,var(--warn) 18%,var(--surface));color:color-mix(in srgb,var(--warn) 75%,var(--ink))}
+.loz.ok{background:color-mix(in srgb,var(--ok) 18%,var(--surface));color:color-mix(in srgb,var(--ok) 75%,var(--ink))}
+.loz.bad{background:color-mix(in srgb,var(--bad) 16%,var(--surface));color:color-mix(in srgb,var(--bad) 80%,var(--ink))}
+.loz.mute{background:var(--sunk);color:var(--muted)}
+.jgroups{display:flex;flex-direction:column;gap:8px}
+.jgroup{border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden}
+.jg-head{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;min-height:44px;flex-wrap:wrap}
+.jg-head:hover{background:var(--sunk)}
+.jgroup.open .jg-head{border-bottom:1px solid var(--line)}
+.chev{width:14px;color:var(--muted);font-size:12px}
+.jg-t{font-size:14.5px}
+.jg-sp{flex:1}
+.jg-head .loz{justify-self:auto}
+.jg-body .jlist{border:0;border-radius:0}
+.j-empty{margin:0;padding:10px 14px;font-size:13.5px}
+.mini-bar{width:70px;height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;display:inline-block}.mini-bar i{display:block;height:100%;background:var(--ok)}
+details.resp summary{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none}
+details.resp summary::-webkit-details-marker{display:none}
+details.resp summary::before{content:"▸";color:var(--muted);font-size:12px}
+details.resp[open] summary::before{content:"▾"}
+details.resp summary h2{margin:0}
+details.resp:not([open]){padding-bottom:4px;margin-bottom:-12px}
+/* tighter board cards */
+.tcard{padding:8px 10px;gap:4px}
+.tcard .tt{font-size:13.5px;font-weight:500}
+@media (max-width:760px){
+  .jrow,.jlist.with-c .jrow{grid-template-columns:18px minmax(0,1fr) auto;row-gap:2px}
+  .jrow .j-c,.jrow .j-due,.jrow .j-as{display:none}
+}
+
+.theme-card.empty{border-style:dashed}
+.sw-row i.add{display:grid;place-items:center;font-style:normal;font-weight:700;color:var(--muted);border:1.5px dashed var(--muted);background:none}
 </style>
 
 <div id="gate" class="gate" hidden></div>
@@ -509,7 +576,7 @@ input.date{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 
 <script>
 /* ============ Constants ============ */
-const COLS = ['circles','meetings','proposals','actions','notices','selections','projects','wiki','courses','people','contacts','org'];
+const COLS = ['circles','meetings','proposals','actions','notices','selections','projects','wiki','courses','people','contacts','org','domains'];
 const ROLE_DEFAULTS = [
   ['leader','Leader','Selected by the parent circle. Holds the operational overview and links down from the parent circle.'],
   ['delegate','Delegate','Selected by this circle. Represents this circle as a full member of the parent circle.'],
@@ -552,7 +619,7 @@ const DEFAULT_LOGO = `<svg width="30" height="30" viewBox="0 0 30 30" aria-hidde
 let curLogo = null;
 
 /* ============ State ============ */
-const S = {circles:{}, meetings:{}, proposals:{}, actions:{}, notices:{}, selections:{}, projects:{}, wiki:{}, courses:{}, people:{}, contacts:{}, org:{}};
+const S = {circles:{}, meetings:{}, proposals:{}, actions:{}, notices:{}, selections:{}, projects:{}, wiki:{}, courses:{}, people:{}, contacts:{}, org:{}, domains:{}};
 const ROLE_LABEL = Object.fromEntries(ROLE_KEYS.map(([k,l])=>[k,l]));
 let searchQ = '';
 let upOpen = false;
@@ -653,7 +720,8 @@ function typeOrder(c){ return ['mission','general','department','helping'].index
 function isDescendant(candidate, ancestor){ let cur = S.circles[candidate], guard = 0; while(cur && guard++ < 50){ if(cur.parentId === ancestor) return true; cur = S.circles[cur.parentId]; } return false; }
 function ordered(){ const out=[]; const seen=new Set(); const walk=(c,d)=>{ if(seen.has(c.id)) return; seen.add(c.id); out.push([c,d]); childrenOf(c.id).forEach(k=>walk(k,d+1)); }; roots().forEach(r=>walk(r,0)); vals('circles').forEach(c=>{ if(!seen.has(c.id)) walk(c,0); }); return out; }
 function roleState(r){ if(!r || !r.holder) return ['Vacant','bad']; const d = daysUntil(r.termEnd); if(d === null) return ['Filled','ok']; if(d < 0) return ['Term ended','bad']; if(d <= 30) return ['Ends soon','warn']; return ['Filled','ok']; }
-function needsRole(c, key){ if(key==='leader' || key==='delegate'){ return !!(c.parentId && S.circles[c.parentId]); } return true; }
+function effParent(c){ if(!c) return ''; if(c.parentId && S.circles[c.parentId]) return c.parentId; if(c.type === 'general'){ const m = vals('circles').find(x => x.type === 'mission' && x.id !== c.id && x.parentId !== c.id); if(m) return m.id; } return ''; }
+function needsRole(c, key){ if(key==='leader' || key==='delegate'){ return !!effParent(c); } return true; }
 function roleGaps(){ const g=[]; vals('circles').forEach(c => ROLE_KEYS.forEach(([k,label]) => { if(!needsRole(c,k)) return; const [s,cls] = roleState(c.roles?.[k]); if(cls!=='ok') g.push({c, k, label, s, cls, r:c.roles?.[k]}); })); return g; }
 function circleMeetings(id){ return vals('meetings').filter(m => m.circleId === id).sort(byDateDesc('date')); }
 function circleProposals(id){ return vals('proposals').filter(p => p.circleId === id).sort(byDateDesc('created')); }
@@ -664,6 +732,8 @@ function examplesPresent(){ return COLS.some(c => vals(c).some(d => d.example));
 /* ============ Rendering ============ */
 function route(){ return (location.hash || '#overview').slice(1); }
 function render(){
+  queueDomainMigration();
+  applyTheme(themeDraft || undefined);
   document.body.classList.toggle('ro', !canWrite);
   const org = S.org.main || {};
   $('#org-name').textContent = org.name || 'Sociocracy';
@@ -676,7 +746,7 @@ function render(){
   const r = route();
   const navItems = [['overview','Home'],['map',`${tm('Circle')} map`],['circles',`${tm('Circles')}`],['people','People'],['work','Work'],['wiki','Wiki']];
   if(canAdmin()) navItems.push(['admin','Admin']);
-  const cur = (/^(circle|meeting|proposal|selection)-/.test(r) || r === 'proposals' || r === 'search') ? 'circles' : (r === 'access' || r.startsWith('admin')) ? 'admin' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
+  const cur = (/^(circle|meeting|proposal|selection|domain)-/.test(r) || r === 'proposals' || r === 'search') ? 'circles' : (r === 'access' || r.startsWith('admin')) ? 'admin' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
   $('#nav').innerHTML = navItems.map(([h,l]) => `<a href="#${h}" class="${cur===h?'on':''}">${l}</a>`).join('');
   const oc = ordered();
   $('#rail-circles').innerHTML = oc.length ? `<div class="eyebrow">${tm('Circles')}</div>` + oc.map(([c,d]) => `<a class="nav-c" href="#circle-${c.id}" style="--d:${Math.min(d,4)};display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px" ${r.startsWith('circle-'+c.id)?'aria-current="page"':''}><i class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--t-${c.type||'department'});flex:none"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${r.startsWith('circle-'+c.id)?'font-weight:700':''}">${esc(c.name)}</span></a>`).join('') : '';
@@ -696,6 +766,7 @@ function render(){
   else if((m = r.match(/^selection-([a-z0-9]+)$/))) html = vSelection(m[1]);
   else if(r === 'proposals') html = vProposals();
   else if(r === 'search') html = vCircles('search');
+  else if((m = r.match(/^domain-([a-z0-9]+)$/))) html = vDomain(m[1]);
   else if(r === 'work') html = vWork();
   else if(r === 'people') html = vPeople();
   else if(r === 'access') html = vAdmin('access');
@@ -713,7 +784,7 @@ function render(){
   $('#view').innerHTML = html;
   if(aid){ const n = document.getElementById(aid); if(n){ if(aval != null) n.value = aval; n.focus(); if(asel) try{ n.setSelectionRange(asel[0], asel[1]); }catch(e){} } }
 }
-window.addEventListener('hashchange', () => { adminDraft = null; if(route() === 'access' || route() === 'admin' || route() === 'admin-access') membersList = null; render(); window.scrollTo(0,0); });
+window.addEventListener('hashchange', () => { adminDraft = null; if(themeDraft){ themeDraft = null; } if(route() === 'access' || route() === 'admin' || route() === 'admin-access') membersList = null; render(); window.scrollTo(0,0); });
 
 /* ---------- Shared pieces ---------- */
 function typeChip(t){ t = t || 'department'; return `<span class="chip t-${t}"><i style="background:var(--t-${t})"></i>${CTYPES[t]||t}</span>`; }
@@ -781,7 +852,7 @@ function vMap(){
   const ids = new Set(list.map(c => c.id));
   const center = list.find(c => c.type === 'general') || roots()[0] || list[0];
   const nb = {}; list.forEach(c => nb[c.id] = []);
-  list.forEach(c => { if(c.parentId && ids.has(c.parentId) && c.parentId !== c.id){ nb[c.id].push(c.parentId); nb[c.parentId].push(c.id); } });
+  list.forEach(c => { const pp = effParent(c); if(pp && ids.has(pp) && pp !== c.id){ nb[c.id].push(pp); nb[pp].push(c.id); } });
   const byName = (a,b) => { const A = S.circles[a], B = S.circles[b]; return (A.id===center.parentId?-1:0)-(B.id===center.parentId?-1:0) || typeOrder(A)-typeOrder(B) || (A.name||'').localeCompare(B.name||''); };
   const par = {}, kids = {}, depth = {}, linked = {};
   const bfs = (root, d0) => { const q = [root]; depth[root] = d0; while(q.length){ const u = q.shift(); kids[u] = kids[u] || []; nb[u].slice().sort(byName).forEach(v => { if(!(v in par) && v !== center.id){ par[v] = u; linked[v] = true; depth[v] = depth[u] + 1; kids[u].push(v); q.push(v); } }); } };
@@ -802,7 +873,7 @@ function vMap(){
   const segs = [];
   Object.keys(par).forEach(u => {
     const p = par[u]; if(!p || !linked[u] || !pos[u] || !pos[p]) return;
-    const child = S.circles[u].parentId === p ? S.circles[u] : S.circles[p];
+    const child = effParent(S.circles[u]) === p ? S.circles[u] : S.circles[p];
     const parent = child.id === u ? S.circles[p] : S.circles[u];
     const P = pos[parent.id], Q = pos[child.id];
     segs.push([P.x, P.y, Q.x, Q.y]);
@@ -810,8 +881,8 @@ function vMap(){
     const seg = o => { const s0 = rad(parent.id) + 12, s1 = rad(child.id) + 12; return [P.x + ux*s0 + nx*o, P.y + uy*s0 + ny*o, Q.x - ux*s1 + nx*o, Q.y - uy*s1 + ny*o].map(v => v.toFixed(1)); };
     const L = child.roles?.leader?.holder, D = child.roles?.delegate?.holder;
     const [a1,b1,a2,b2] = seg(-4), [c1,d1,c2,d2] = seg(4);
-    links += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="var(--lead)" stroke-width="2" marker-end="url(#arL)" ${L?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Leader')} of ${esc(child.name)}: ${esc(L||'not selected')} (selected by ${esc(parent.name)})</title></line>`;
-    links += `<line x1="${c2}" y1="${d2}" x2="${c1}" y2="${d1}" stroke="var(--deleg)" stroke-width="2" marker-end="url(#arD)" ${D?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Delegate')} of ${esc(child.name)}: ${esc(D||'not selected')} (selected by ${esc(child.name)})</title></line>`;
+    links += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="var(--lead)" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arL)" ${L?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Leader')} of ${esc(child.name)}: ${esc(L||'not selected')} (selected by ${esc(parent.name)})</title></line>`;
+    links += `<line x1="${c2}" y1="${d2}" x2="${c1}" y2="${d1}" stroke="var(--deleg)" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arD)" ${D?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Delegate')} of ${esc(child.name)}: ${esc(D||'not selected')} (selected by ${esc(child.name)})</title></line>`;
   });
   Object.keys(pos).forEach(id => {
     const c = S.circles[id]; if(!c) return;
@@ -824,7 +895,7 @@ function vMap(){
     if(id === center.id){
       const inner = wrapWords(c.name, 12);
       nodes += `<g class="map-node" tabindex="0" role="link" aria-label="${esc(c.name)}" data-act="goCircle" data-id="${c.id}">
-        <circle class="ring" cx="${X}" cy="${Y}" r="${r}" fill="color-mix(in srgb, var(--t-${t}) 10%, var(--surface))" stroke="var(--t-${t})" stroke-width="2.5"/>
+        <circle cx="${X}" cy="${Y}" r="${r+10}" fill="color-mix(in srgb, var(--t-${t}) 10%, transparent)"/><circle class="ring" cx="${X}" cy="${Y}" r="${r}" fill="color-mix(in srgb, var(--t-${t}) 26%, var(--surface))" stroke="var(--t-${t})" stroke-width="3"/>
         ${dotSvg}
         ${inner.map((l,i)=>`<text x="${X}" y="${Y - (inner.length-1)*8 + i*16 - 4}" text-anchor="middle" dominant-baseline="middle" font-family="var(--f-display)" font-weight="700" font-size="14" fill="var(--ink)">${esc(l)}</text>`).join('')}
         <text x="${X}" y="${Y + (inner.length-1)*8 + 16}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="var(--muted)">${mem} member${mem===1?'':'s'}</text>
@@ -853,7 +924,7 @@ function vMap(){
     const lx = pick.lx, anchor = pick.anchor;
     const nameY = i => pick.y0 + 13 + i*15, typeY = pick.y0 + 13 + lines.length*15;
     nodes += `<g class="map-node" tabindex="0" role="link" aria-label="${esc(c.name)}" data-act="goCircle" data-id="${c.id}">
-      <circle class="ring" cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${r}" fill="color-mix(in srgb, var(--t-${t}) 16%, var(--surface))" stroke="var(--t-${t})" stroke-width="2"/>
+      <circle class="ring" cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${r}" fill="color-mix(in srgb, var(--t-${t}) 24%, var(--surface))" stroke="var(--t-${t})" stroke-width="2.5"/>
       ${dotSvg}
       <text x="${X.toFixed(1)}" y="${(Y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-family="var(--f-display)" font-weight="700" font-size="${id===center.id?20:17}" fill="var(--ink)">${mem}</text>
       <text x="${X.toFixed(1)}" y="${(Y+15).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="var(--muted)">member${mem===1?'':'s'}</text>
@@ -886,7 +957,7 @@ function vCircles(tab){
   const oc = ordered();
   const head = `<div class="head"><div class="t"><span class="eyebrow">Directory</span><h1>${tm('Circles')}</h1><p>What each ${tm('circle')} is for, what it decides, and who to talk to.</p></div><div class="row"><button class="btn pri w" data-act="newCircle" type="button">New ${tm('circle')}</button></div></div>
   <div class="tabs" role="tablist"><a href="#circles" role="tab" class="${tab!=='search'?'on':''}" aria-selected="${tab!=='search'}">All ${tm('circles')}</a><a href="#search" role="tab" class="${tab==='search'?'on':''}" aria-selected="${tab==='search'}">Who decides?</a></div>`;
-  if(tab === 'search') return head + `<p class="muted" style="max-width:70ch">Search every ${tm('circle')}'s domain and aim, the policies in force, the wiki, community updates and meeting takeaways. The ${tm('circle')} whose domain covers a topic is the one that decides it.</p>
+  if(tab === 'search') return head + `<div class="row" style="justify-content:space-between;align-items:flex-start"><p class="muted" style="max-width:70ch;margin:0">Every domain and the ${tm('circle')} that holds it. The ${tm('circle')} whose domain covers a topic is the one that decides it. Search also looks through policies, the wiki, updates and meeting takeaways.</p><div class="row">${canWrite?`<button class="btn" data-act="newDomain" data-open="1" type="button">Ask who decides</button><button class="btn pri" data-act="newDomain" type="button">Add a domain</button>`:''}</div></div>
   <input id="q" class="bigsearch" value="${esc(searchQ)}" placeholder="e.g. room booking, budget, new members" aria-label="Search" autocomplete="off">
   <div id="results" style="display:flex;flex-direction:column;gap:18px">${searchResults()}</div>`;
   if(!oc.length) return head + emptyBox(`No ${tm('circles')} yet.`, `<button class="btn sm w" data-act="newCircle" type="button">Create ${art('a','circle')}</button>`);
@@ -928,9 +999,9 @@ function cAbout(c){
   const roleRows = ROLE_KEYS.filter(([k])=>needsRole(c,k)).map(([k,l,desc])=>{ const r=c.roles?.[k]||{}; const rd=c.roleDescs?.[k]||{}; const [s,cls]=roleState(r); return `<tr><td>${descCell(l, rd.responsibilities, rd.qualifications, desc)}</td><td>${r.holder?person(r.holder):'<span class="muted">Not selected</span>'}</td><td class="mono">${mdy(r.selected)||'—'}</td><td class="mono">${mdy(r.termEnd)||'—'}</td><td>${stChip(s,cls)}</td><td>${selButton(c,k)}</td></tr>`; }).join('');
   const extra = (c.extraRoles||[]).map(r=>{ const [s,cls]=roleState(r); return `<tr><td>${descCell(r.title, r.description, r.qualifications)}</td><td>${r.holder?person(r.holder):'<span class="muted">Not selected</span>'}</td><td class="mono">${mdy(r.selected)||'—'}</td><td class="mono">${mdy(r.termEnd)||'—'}</td><td>${stChip(s,cls)}</td><td>${selButton(c,'x:'+r.title)}</td></tr>`; }).join('');
   return `
+  ${circleDomainsPanel(c)}
   <div class="cols">
     <section class="panel"><h2>Aim</h2><div class="def"><span class="eyebrow">What this ${tm('circle')} does</span><div class="txt">${esc(c.aim || 'Not written yet.')}</div></div>
-      <div class="def"><span class="eyebrow">Domain · what this ${tm('circle')} decides</span><div class="txt">${esc(c.domain || 'Not written yet.')}</div></div>
       ${c.description?`<div class="def"><span class="eyebrow">More about this ${tm('circle')}</span><div class="txt">${esc(c.description)}</div></div>`:''}
       ${c.rhythm?`<div class="def"><span class="eyebrow">Meeting rhythm</span><div>${esc(c.rhythm)}</div></div>`:''}
     </section>
@@ -1085,7 +1156,7 @@ function circleForm(c){
   <div class="grid2">${fText('f-name',`${tm('Circle')} name`,c.name,{ph:`e.g. Membership ${tm('Circle')}`})}${(() => { const taken = k => vals('circles').find(x => x.type===k && x.id!==c.id); return `<label class="f"><span>Type</span><select id="f-type">${Object.entries(CTYPES).map(([k,l]) => { const t = (k==='general'||k==='mission') && taken(k); return `<option value="${k}" ${k===(c.type||'department')?'selected':''} ${t?'disabled':''}>${esc(l)}${t?` (already ${esc(t.name)})`:''}</option>`; }).join('')}</select><small>One general ${tm('circle')} and at most one mission ${tm('circle')} per organization.</small></label>`; })()}</div>
   <label class="f"><span>Parent ${tm('circle')}</span><select id="f-parent"><option value="">None (top of the structure)</option>${others.map(o=>`<option value="${o.id}" ${o.id===c.parentId?'selected':''}>${esc(o.name)}</option>`).join('')}</select><small>The ${tm('circle')} this one is double-linked to.</small></label>
   ${fArea('f-aim','Aim',c.aim,{ph:`What this ${tm('circle')} does or produces`,hint:'One or two sentences.'})}
-  ${fArea('f-domain','Domain',c.domain,{ph:`What this ${tm('circle')} decides on its own`,rows:3})}
+  <p class="hint">Domains, what this ${tm('circle')} decides on its own, are listed and managed on the ${tm('circle')} page.</p>
   ${fArea('f-desc',`More about this ${tm('circle')}`,c.description,{ph:`Background, how to reach the ${tm('circle')}, links`,rows:2})}
   ${fText('f-rhythm','Meeting rhythm',c.rhythm,{ph:'e.g. Every other Tuesday, 18:00'})}
   ${memberPicker(c.members)}
@@ -1106,7 +1177,7 @@ function editCircle(id, parentId){
     const roles = {};
     ROLE_KEYS.forEach(([k]) => { roles[k] = {holder:gv('r-'+k), selected:gd('rs-'+k), termEnd:gd('rt-'+k)}; });
     const extraRoles = [...document.querySelectorAll('#xroles .xrole')].map(row => { const k=row.querySelector('input').id.slice(3); return {title:gv('xt-'+k), holder:gv('xh-'+k), selected:gd('xs-'+k), termEnd:gd('xe-'+k), description:gv('xd-'+k)}; }).filter(r=>r.title);
-    const obj = {...c, name, type:gv('f-type'), parentId:gv('f-parent'), aim:gv('f-aim'), domain:gv('f-domain'), description:gv('f-desc'), rhythm:gv('f-rhythm'), members:pickedMembers(), roles, extraRoles, updated:todayISO()};
+    const obj = {...c, name, type:gv('f-type'), parentId:gv('f-parent'), aim:gv('f-aim'), domain:(c.domain||''), description:gv('f-desc'), rhythm:gv('f-rhythm'), members:pickedMembers(), roles, extraRoles, updated:todayISO()};
     obj.example = c.example || false;
     const ok = await put('circles', obj); if(ok){ toast(id?`${tm('Circle')} saved`:`${tm('Circle')} created`); if(!id) location.hash = 'circle-'+obj.id; }
     return ok;
@@ -1437,6 +1508,45 @@ async function importData(){
 }
 
 
+
+/* ============ Theme: colors admins can choose ============ */
+const THEME_PRESETS = {
+  sunny:{label:'Sunny', general:'#FF8A3D', mission:'#B57BFF', department:'#22B8A8', helping:'#FF6FA8', rail:'#FFF6EC', accent:'#FF7A45', lead:'#FF8A3D', deleg:'#22B8A8'},
+  ocean:{label:'Ocean', general:'#0EA5E9', mission:'#8B5CF6', department:'#14B8A6', helping:'#F59E0B', rail:'#EEF8FF', accent:'#0EA5E9', lead:'#0EA5E9', deleg:'#F59E0B'},
+  garden:{label:'Garden', general:'#22C55E', mission:'#A78BFA', department:'#F59E0B', helping:'#F472B6', rail:'#F0FBF2', accent:'#22C55E', lead:'#16A34A', deleg:'#F59E0B'},
+  berry:{label:'Berry', general:'#F43F5E', mission:'#8B5CF6', department:'#06B6D4', helping:'#FACC15', rail:'#FFF1F4', accent:'#F43F5E', lead:'#F43F5E', deleg:'#8B5CF6'},
+  mono:{label:'Quiet mono', general:'#111113', mission:'#9B4FE0', department:'#2F5BD3', helping:'#D98300', rail:'#FAFAFA', accent:'#111113', lead:'#111113', deleg:'#8B8B93'}
+};
+const THEME_KEYS = [['general','General circle'],['mission','Mission circle'],['department','Department circles'],['helping','Helping circles'],['rail','Side menu background'],['accent','Buttons and highlights'],['lead','Leader lines on the map'],['deleg','Delegate lines on the map']];
+function themeCfg(){ const t = orgCfg().theme || {}; const base = THEME_PRESETS[t.preset] || THEME_PRESETS.sunny; const out = {...base, ...t, preset: t.preset || 'sunny'}; delete out.label; return out; }
+function lum(hex){ const m = /^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return 0; const n = parseInt(m[1],16); return [n>>16, (n>>8)&255, n&255].map(v => { v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }).reduce((s,v,i) => s + v*[.2126,.7152,.0722][i], 0); }
+function inkOn(hex){ const L = lum(hex); return (1.05/(L+.05)) >= ((L+.05)/0.05) ? '#FFFFFF' : '#111113'; }
+let themeApplied = '';
+function applyTheme(t){
+  t = t || themeCfg();
+  const dk = c => lum(c) < .05 ? '#EDEDEF' : c;
+  const light = `--t-general:${t.general};--t-mission:${t.mission};--t-department:${t.department};--t-helping:${t.helping};--rail:${t.rail};--accent:${t.accent};--accent-ink:${inkOn(t.accent)};--accent-soft:color-mix(in srgb,${t.accent} 14%,#fff);--lead:${t.lead};--deleg:${t.deleg}`;
+  const dark = `--t-general:${dk(t.general)};--t-mission:${dk(t.mission)};--t-department:${dk(t.department)};--t-helping:${dk(t.helping)};--rail:color-mix(in srgb,${t.rail} 6%,#121214);--accent:${dk(t.accent)};--accent-ink:${inkOn(dk(t.accent))};--accent-soft:color-mix(in srgb,${dk(t.accent)} 22%,#141416);--lead:${dk(t.lead)};--deleg:${dk(t.deleg)}`;
+  const css = `html:root{${light}}
+@media (prefers-color-scheme: dark){html:root:not([data-theme="light"]){${dark}}}
+html:root[data-theme="dark"]{${dark}}`;
+  if(css === themeApplied) return; themeApplied = css;
+  let el = document.getElementById('theme-vars'); if(!el){ el = document.createElement('style'); el.id = 'theme-vars'; document.head.appendChild(el); }
+  el.textContent = css;
+}
+let themeDraft = null;
+function adminAppearance(){
+  const t = themeDraft || themeCfg();
+  const sw = p => `<span class="sw-row">${['general','mission','department','helping'].map(k => `<i style="background:${p[k]}"></i>`).join('')}</span>`;
+  return `<section class="panel"><h2>Color themes</h2><p class="muted" style="font-size:14px">Pick a starting point, then fine-tune any color below. Changes preview right away and apply for everyone once you save.</p>
+    <div class="theme-grid">${Object.entries(THEME_PRESETS).map(([k,p]) => `<button type="button" class="theme-card ${t.preset===k?'on':''}" data-act="themePreset" data-k="${k}" style="--rc:${p.rail};--ac:${p.accent}"><span class="tc-rail"></span>${sw(p)}<b>${p.label}</b></button>`).join('')}${(() => { const c = t.preset === 'custom' ? t : orgCfg().customTheme; return `<button type="button" class="theme-card custom ${t.preset==='custom'?'on':''} ${c?'':'empty'}" data-act="themePreset" data-k="custom" style="--rc:${c?c.rail:'var(--sunk)'};--ac:${c?c.accent:'var(--muted)'}"><span class="tc-rail"></span>${c ? sw(c) : '<span class="sw-row"><i class="add">+</i></span>'}<b>Custom</b>${c?'':'<span class="muted" style="font-size:12px">Make your own</span>'}</button>`; })()}</div>
+  </section>
+  <section class="panel"><h2>Your colors</h2>
+    <div class="color-grid">${THEME_KEYS.map(([k,l]) => `<label class="cpick"><input type="color" id="th-${k}" value="${t[k]}" data-k="${k}"><span><b>${k==='general'?esc(CTYPES.general):k==='mission'?esc(CTYPES.mission):k==='department'?esc(plural(CTYPES.department)):k==='helping'?esc(plural(CTYPES.helping)):k==='lead'?`${esc(tm('Leader'))} lines on the map`:k==='deleg'?`${esc(tm('Delegate'))} lines on the map`:l}</b><span class="mono muted">${t[k].toUpperCase()}</span></span></label>`).join('')}</div>
+    <div class="row"><button class="btn pri" data-act="saveTheme" type="button">Save colors</button>${themeDraft?'<button class="btn ghost" data-act="discardTheme" type="button">Discard changes</button>':''}</div>
+  </section>`;
+}
+
 /* ============ Admin ============ */
 function canAdmin(){ return mode === 'supabase' ? isAdmin : (canWrite && mode !== 'loading'); }
 const STD_FIELDS = [
@@ -1450,13 +1560,14 @@ function fieldRule(k){ return (orgCfg().fields||{})[k] || (STD_FIELDS.find(f => 
 function customFields(){ return (orgCfg().customFields||[]).filter(f => f && f.id && f.label); }
 let adminDraft = null;
 function vAdmin(tab){
-  const tabs = [...(mode==='supabase' ? [['access','Access']] : []), ['workspace','Workspace'], ['terms','Terminology'], ['roles','Roles'], ['fields','Profile fields']];
+  const tabs = [...(mode==='supabase' ? [['access','Access']] : []), ['workspace','Workspace'], ['appearance','Colors'], ['terms','Terminology'], ['roles','Roles'], ['fields','Profile fields']];
   if(!tab || !tabs.some(t => t[0]===tab)) tab = tabs[0][0];
   const head = `<div class="head"><div class="t"><span class="eyebrow">Admin</span><h1>Admin</h1><p>Manage who has access and customize how this workspace looks and works. Only ${mode==='supabase'?'admins':'people who can edit'} see this page.</p></div></div>
   <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<a href="#admin-${k}" role="tab" class="${k===tab?'on':''}" aria-selected="${k===tab}">${l}</a>`).join('')}</div>`;
   if(!canAdmin()) return head + emptyBox('Only admins can open this page.');
   if(tab === 'access') return head + vAccess(true);
   if(tab === 'workspace') return head + adminWorkspace();
+  if(tab === 'appearance') return head + adminAppearance();
   if(tab === 'terms') return head + adminTerms();
   if(tab === 'roles') return head + adminRoles();
   return head + adminFields();
@@ -1659,6 +1770,8 @@ async function loadExamples(){
   for(const w of wikis) await put('wiki', w);
   for(const n of notices) await put('notices', n);
   if(!S.org.main) await put('org', {id:'main', name:'Example Community', tagline:'A sample organization to show how circles, meetings and decisions fit together.', example:true});
+  await put('domains', {id:'dexkitchen', title:'How we organize the shared kitchen', description:'Cleaning rota, what can be stored there, and who restocks basics.', circleId:'', status:'open', created:d(-4), history:[{date:d(-4), action:'raised', by:'Mia (example)', note:'Came up because nobody knew who could change the cleaning rota.'}], ...ex});
+  if(S.circles.cexgen){ const g = clone(S.circles.cexgen); if(!(g.backlog||[]).some(b => b && b.ref === 'domain:dexkitchen')){ g.backlog = [...(g.backlog||[]), {text:'Who decides: How we organize the shared kitchen', note:'Cleaning rota, what can be stored there, and who restocks basics.', fromCircleId:'', by:'Mia (example)', date:d(-4), ref:'domain:dexkitchen'}]; await put('circles', g); } }
   closeModal(); toast('Example organization loaded');
 }
 async function removeExamples(){
@@ -1714,21 +1827,41 @@ function cWork(c){
     body = names.length ? `<div class="cols3">${names.map(n => `<section class="panel"><div class="ph">${n?person(n):'<b>Unassigned</b>'}<span class="mono muted">${groups[n].length} open</span></div><div class="stack">${groups[n].sort(sortT).map(a => taskCard(a)).join('')}</div></section>`).join('')}</div>` : emptyBox('Every task here is done.');
   }
   else if(workView === 'projects') body = projectGroups(projects.filter(p => workProject === 'all' || workProject === p.id), tasks, false, workProject === 'all' || workProject === 'none');
-  else body = `<section class="panel"><div class="tscroll"><table><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.slice().sort((a,b)=>(a.status==='done')-(b.status==='done') || sortT(a,b)).map(a => taskRow(a)).join('')}</tbody></table></div></section>`;
+  else body = jList(tasks.slice().sort((a,b)=>(a.status==='done')-(b.status==='done') || sortT(a,b)));
   return projPanel + toolbar + body;
 }
+
+/* ---------- Jira-style compact task rows ---------- */
+const PRIO_ICON = {high:'<svg width="14" height="14" viewBox="0 0 16 16" aria-label="High priority"><path d="M3 10l5-5 5 5" fill="none" stroke="var(--bad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>', normal:'<svg width="14" height="14" viewBox="0 0 16 16" aria-label="Normal priority"><path d="M3 6h10M3 10h10" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"/></svg>', low:'<svg width="14" height="14" viewBox="0 0 16 16" aria-label="Low priority"><path d="M3 6l5 5 5-5" fill="none" stroke="var(--info)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+function jRow(a, o={}){
+  const l = A_STATUS[a.status||'todo'][0], cls = {todo:'mute', doing:'info', blocked:'bad', done:'ok'}[a.status||'todo']; const pr = o.hideProj ? null : S.projects[a.projectId]; const cp = checkProgress(a);
+  const late = a.due && a.status !== 'done' && daysUntil(a.due) < 0;
+  return `<div class="jrow ${a.status==='done'?'done':''}" data-act="editAction" data-id="${a.id}" role="button" tabindex="0">
+    <span class="j-ic">${PRIO_ICON[a.priority||'normal']}</span>
+    <span class="j-sum"><span class="j-t">${esc(a.task)}</span>${pr?`<span class="j-tag">${esc(pr.name)}</span>`:''}${cp?`<span class="j-meta">☑ ${cp}</span>`:''}</span>
+    ${o.circle?`<span class="j-c">${esc(circleName(a.circleId))}</span>`:''}
+    <span class="j-due mono ${late?'late':''}">${a.due?mdy(a.due):''}</span>
+    <span class="j-as" title="${esc(a.owner||'Unassigned')}">${a.owner?`${avatar(a.owner,'av')}<span>${esc(a.owner)}</span>`:'<span class="av av-none">?</span><span class="muted">Unassigned</span>'}</span>
+    <button class="loz ${cls}" data-act="cycleAction" data-id="${a.id}" type="button" title="Change status">${l}</button>
+  </div>`;
+}
+function jList(tasks, o={}){ return tasks.length ? `<div class="jlist ${o.circle?'with-c':''}">${tasks.map(a => jRow(a, o)).join('')}</div>` : ''; }
+let projOpen = (() => { try{ const v = localStorage.getItem('cc-projclosed'); return new Set(v ? JSON.parse(v) : []); }catch(e){ return new Set(); } })();
+function saveProjClosed(){ try{ localStorage.setItem('cc-projclosed', JSON.stringify([...projOpen])); }catch(e){} }
+
 function projectGroups(projects, tasks, showCircle, withLoose){
   const sortT = (a,b) => (a.status==='done')-(b.status==='done') || ({high:0,normal:1,low:2}[a.priority||'normal'] - {high:0,normal:1,low:2}[b.priority||'normal']) || (a.due||'9').localeCompare(b.due||'9');
-  const head = `<thead><tr><th>Task</th>${showCircle?'<th>Circle</th>':''}<th>Owner</th><th>Due</th><th>Status</th></tr></thead>`;
+  const group = (key, title, extra, t, actions, circleId) => { const closed = projOpen.has(key); return `<div class="jgroup ${closed?'':'open'}">
+    <div class="jg-head" data-act="toggleProj" data-k="${key}" role="button" tabindex="0" aria-expanded="${!closed}"><span class="chev">${closed?'▸':'▾'}</span><b class="jg-t">${title}</b>${extra}<span class="j-meta">${t.length} task${t.length===1?'':'s'}</span><span class="jg-sp"></span>${actions}</div>
+    ${closed ? '' : `<div class="jg-body">${t.length ? jList(t, {circle:showCircle, hideProj:true}) : '<p class="muted j-empty">No tasks to show. Use + to add one.</p>'}</div>`}</div>`; };
   const out = projects.map(p => {
     const t = tasks.filter(a => a.projectId === p.id).sort(sortT); const {pg, pct} = projMeta(p); const [sl, sc] = P_STATUS[p.status||'active'];
-    return `<section class="panel pgroup"><div class="ph"><div class="stack" style="gap:4px;min-width:0"><div class="row" style="gap:8px"><h2 style="margin:0">${esc(p.name)}</h2>${stChip(sl, sc)}</div>
-      <span class="bl-meta">${showCircle?`<a href="#circle-${p.circleId}-actions">${esc(circleName(p.circleId))}</a> · `:''}${pg.done} of ${pg.total} done${p.owner?` · ${esc(p.owner)}`:''}${p.due?` · target ${mdy(p.due)}`:''}</span></div>
-      <div class="row" style="gap:8px;flex:none"><div class="pbar" style="width:90px"><i style="width:${pct}%"></i></div><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}</div></div>
-      ${t.length ? `<div class="tscroll"><table>${head}<tbody>${t.map(a => taskRow(a, showCircle, true)).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No tasks to show. Use + to add one.</p>'}</section>`;
+    const extra = `<button class="loz ${sc}" type="button" data-act="editProject" data-id="${p.id}" title="Edit project">${sl}</button>${showCircle?`<span class="j-meta">${esc(circleName(p.circleId))}</span>`:''}<span class="mini-bar" title="${pg.done} of ${pg.total} done"><i style="width:${pct}%"></i></span><span class="j-meta mono">${pg.done}/${pg.total}</span>`;
+    return group(p.id, esc(p.name), extra, t, `<button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}`);
   });
-  if(withLoose){ const loose = tasks.filter(a => !a.projectId || !S.projects[a.projectId]).sort(sortT); if(loose.length) out.push(`<section class="panel pgroup"><div class="ph"><h2 style="margin:0">No project</h2><span class="mono muted">${loose.length}</span></div><div class="tscroll"><table>${head}<tbody>${loose.map(a => taskRow(a, showCircle)).join('')}</tbody></table></div></section>`); }
-  return out.length ? `<div class="stack">${out.join('')}</div>` : emptyBox('No projects or tasks match.');
+  if(withLoose){ const loose = tasks.filter(a => !a.projectId || !S.projects[a.projectId]).sort(sortT); if(loose.length) out.push(group('__none', 'No project', '', loose, '')); }
+  if(!out.length) return emptyBox('No projects or tasks match.');
+  return `<div class="row" style="justify-content:flex-end;gap:4px"><button class="btn sm ghost" data-act="projAll" data-v="open" type="button">Expand all</button><button class="btn sm ghost" data-act="projAll" data-v="close" type="button">Collapse all</button></div><div class="jgroups">${out.join('')}</div>`;
 }
 function vWork(){
   const all = vals('actions').filter(a => S.circles[a.circleId]);
@@ -1765,11 +1898,11 @@ function vWork(){
     const shown = workPerson ? projs.filter(p => list.some(a => a.projectId === p.id)) : projs;
     body = projectGroups(shown, list, true, true);
   } else {
-    body = `<section class="panel"><div class="ph"><h2>Who is responsible</h2><span class="bl-meta">${open.length} open task${open.length===1?'':'s'}${unassigned?` · ${unassigned} without an owner`:''}</span></div>
+    body = `<details class="panel resp"><summary><h2>Who is responsible</h2><span class="bl-meta">${open.length} open task${open.length===1?'':'s'}${unassigned?` · ${unassigned} without an owner`:''}</span></summary>
     ${summary.length ? `<div class="tscroll"><table><thead><tr><th>Person</th><th>Open</th><th>Overdue</th><th>${tm('Circles')}</th></tr></thead><tbody>${summary.map(x => `<tr><td><a href="#" data-act="workPerson" data-p="${esc(x.o)}" style="text-decoration:none;color:var(--ink)">${person(x.o,false)}</a></td><td class="mono">${x.n}</td><td class="mono" style="${x.late?'color:var(--bad)':''}">${x.late}</td><td>${x.circles.map(id => `<a href="#circle-${id}-actions">${esc(circleName(id))}</a>`).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No open tasks with an owner.</p>'}
-  </section>
+  </details>
   <section class="panel"><div class="ph"><h2>Tasks</h2><span class="bl-meta">${list.length} shown</span></div>
-    ${list.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>${tm('Circle')}</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${list.map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No tasks match.</p>'}
+    ${list.length ? jList(list, {circle:true}) : '<p class="muted">No tasks match.</p>'}
   </section>`;
   }
   return `<div class="head"><div class="t"><span class="eyebrow">Across all ${tm('circles')}</span><h1>Work</h1><p>Every task and project in every ${tm('circle')}, and who is responsible. Each ${tm('circle')} creates its own projects and tasks on its Work tab.</p></div></div>
@@ -2326,7 +2459,7 @@ function vPerson(id){
     <div class="course-main">
       ${pubHTML ? `<section class="panel"><h2>About</h2>${pubHTML}</section>` : ''}
       <section class="panel"><h2>${tm('Circles')} and roles</h2>${circles.length ? `<div class="tscroll"><table><thead><tr><th>${tm('Circle')}</th><th>Roles</th><th>Term ends</th></tr></thead><tbody>${circles.map(c => { const rs = roles.filter(r => r.c.id === c.id); return `<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a><div class="bl-meta">${CTYPES[c.type]||''}</div></td><td>${rs.map(r => esc(r.role)).join('<br>') || '<span class="muted">Member</span>'}</td><td class="mono">${rs.map(r => mdy(r.termEnd) || '—').join('<br>') || '—'}</td></tr>`; }).join('')}</tbody></table></div>` : `<p class="muted">Not in any ${tm('circle')} yet.</p>`}</section>
-      <section class="panel"><div class="ph"><h2>Open tasks</h2><a href="#work" class="bl-meta">All work</a></div>${tasks.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>${tm('Circle')}</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No open tasks.</p>'}</section>
+      <section class="panel"><div class="ph"><h2>Open tasks</h2><a href="#work" class="bl-meta">All work</a></div>${tasks.length ? jList(tasks.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')), {circle:true}) : '<p class="muted">No open tasks.</p>'}</section>
     </div>
     <aside class="course-side">
       ${contact && (contact.ecName || contact.ecPhone) ? `<div class="side-card ec"><span class="eyebrow">Emergency contact</span>${contact.ecName?`<div>${esc(contact.ecName)}</div>`:''}${contact.ecPhone?`<div class="row" style="gap:6px"><span class="mono">${esc(contact.ecPhone)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.ecPhone)}" type="button">Copy</button></div>`:''}<span class="bl-meta">Visible only to people who can edit the workspace.</span></div>` : ''}
@@ -2461,8 +2594,8 @@ const bText = b => typeof b === 'string' ? b : (b?.text || '');
 function backlogHTML(b){
   if(typeof b === 'string') return esc(b);
   const [kind, rid] = (b.ref||'').split(':');
-  const link = kind==='meeting' && S.meetings[rid] ? `<a href="#meeting-${rid}">minutes</a>` : kind==='proposal' && S.proposals[rid] ? `<a href="#proposal-${rid}">proposal</a>` : '';
-  return `<b>${esc(b.text)}</b>${b.note?`<div style="font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(b.note)}</div>`:''}<div class="bl-meta">From ${b.fromCircleId&&S.circles[b.fromCircleId]?`<a href="#circle-${b.fromCircleId}">${esc(circleName(b.fromCircleId))}</a>`:`another ${tm('circle')}`}${b.by?` · brought by ${esc(b.by)}`:''}${b.date?` · <span class="mono">${mdy(b.date)}</span>`:''}${link?` · ${link}`:''}</div>`;
+  const link = kind==='meeting' && S.meetings[rid] ? `<a href="#meeting-${rid}">minutes</a>` : kind==='proposal' && S.proposals[rid] ? `<a href="#proposal-${rid}">proposal</a>` : kind==='domain' && S.domains[rid] ? `<a href="#domain-${rid}">open domain question</a>` : '';
+  return `<b>${esc(b.text)}</b>${b.note?`<div style="font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(b.note)}</div>`:''}<div class="bl-meta">${kind==='domain' ? 'Open domain question' : `From ${b.fromCircleId&&S.circles[b.fromCircleId]?`<a href="#circle-${b.fromCircleId}">${esc(circleName(b.fromCircleId))}</a>`:`another ${tm('circle')}`}`}${b.by?` · brought by ${esc(b.by)}`:''}${b.date?` · <span class="mono">${mdy(b.date)}</span>`:''}${link?` · ${link}`:''}</div>`;
 }
 function sentHTML(list){ return (list||[]).filter(id=>S.circles[id]).map(id=>`<span class="sent">Sent to <a href="#circle-${id}-meetings">${esc(S.circles[id].name)}</a></span>`).join(''); }
 function linkTargets(circleId){
@@ -2513,25 +2646,161 @@ function searchResults(){
   const circles = ordered().map(([c]) => c);
   const ask = c => [c.roles?.leader?.holder && `${tm('Leader')}: ${esc(c.roles.leader.holder)}`, c.roles?.secretary?.holder && `${tm('Secretary')}: ${esc(c.roles.secretary.holder)}`].filter(Boolean).join(' · ');
   if(!terms.length){
+    return domainTable(liveDomains());
     if(!circles.length) return emptyBox(`No ${tm('circles')} yet. Once ${tm('circles')} have domains, you can search them here.`);
     return `<section class="panel"><div class="ph"><h2>Domains at a glance</h2></div><div class="tscroll"><table><thead><tr><th>${tm('Circle')}</th><th>Decides on</th><th>Who to ask</th></tr></thead><tbody>${circles.map(c=>`<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a></td><td style="white-space:pre-wrap">${esc(c.domain||'—')}</td><td>${ask(c)||'—'}</td></tr>`).join('')}</tbody></table></div></section>`;
   }
   const score = fields => { const hit = new Set(); let s = 0; fields.forEach(([txt, w]) => { const l = String(txt||'').toLowerCase(); terms.forEach(t => { if(l.includes(t)){ hit.add(t); s += w; } }); }); return hit.size ? hit.size * 100 + s : 0; };
   const rank = (list, f) => list.map(x => [x, score(f(x))]).filter(x => x[1]).sort((a,b) => b[1]-a[1]).map(x => x[0]);
-  const rc = rank(circles, c => [[c.domain,4],[c.name,3],[c.aim,2],[c.description,1],[Object.values(c.roleDescs||{}).map(r=>r.responsibilities).join(' '),1],[(c.extraRoles||[]).map(r=>r.title+' '+(r.description||'')).join(' '),1]]);
+  const rd = rank(vals('domains').filter(d => d.status !== 'retired'), d => [[d.title,4],[d.description,2],[circleName(d.circleId),1]]);
+  const rc = rank(circles, c => [[c.name,3],[c.aim,2],[c.description,1],[Object.values(c.roleDescs||{}).map(r=>r.responsibilities).join(' '),1],[(c.extraRoles||[]).map(r=>r.title+' '+(r.description||'')).join(' '),1]]);
   const rp = rank(vals('proposals').filter(p=>p.stage==='consented'), p => [[p.title,3],[p.proposal,2],[p.driver,1]]);
   const rn = rank(vals('notices'), n => [[n.title,3],[n.body,1]]);
   const rw = rank(vals('wiki'), w => [[w.title,3],[w.summary,2],[w.body,1]]);
   const rm = rank(vals('meetings'), m => [[m.takeaways,2],[(m.agenda||[]).map(a=>a.title+' '+(a.outcome||'')).join(' '),1]]);
-  if(!rc.length && !rp.length && !rn.length && !rm.length && !rw.length) return emptyBox(`Nothing matches “${esc(searchQ.trim())}”. If no ${tm('circle')}'s domain covers this topic, it belongs to the general ${tm('circle')} until someone takes it on.`);
+  if(!rd.length && !rc.length && !rp.length && !rn.length && !rm.length && !rw.length) return `<div class="req-banner"><span>Nothing matches “${esc(searchQ.trim())}”. No domain covers this yet, so it belongs to the general ${tm('circle')} until someone takes it on.</span>${canWrite?`<button class="btn sm pri" data-act="newDomain" data-open="1" data-title="${esc(searchQ.trim())}" type="button">Ask who decides</button>`:''}</div>`;
   const sec = (t, inner) => `<section class="panel"><div class="ph"><h2>${t}</h2></div>${inner}</section>`;
-  let out = '';
-  if(rc.length) out += sec(`${tm('Circles')} that may decide this`, `<div class="list">${rc.map((c,i)=>`<div class="item"><div class="body"><div class="res-h"><a class="ttl" href="#circle-${c.id}">${esc(c.name)}</a>${i===0?'<span class="st ok">Best match</span>':''}</div><div><span class="eyebrow">Decides on</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${hl(c.domain||'No domain written yet.', terms)}</div></div>${c.aim?`<div class="muted" style="font-size:13.5px">Aim: ${snip(c.aim, terms)}</div>`:''}${ask(c)?`<div class="bl-meta">${ask(c)}</div>`:''}</div><div class="side">${typeChip(c.type)}</div></div>`).join('')}</div>`);
+  let out = rd.length ? `<section class="panel"><div class="ph"><h2>Domains that match</h2></div>${domainTable(rd, true)}</section>` : `<div class="req-banner"><span>No domain covers this yet. If nobody decides it today, raise it so the general ${tm('circle')} can assign it.</span>${canWrite?`<button class="btn sm pri" data-act="newDomain" data-open="1" data-title="${esc(searchQ.trim())}" type="button">Ask who decides</button>`:''}</div>`;
+  if(rc.length) out += sec(`${tm('Circles')} whose aim mentions this`, `<div class="list">${rc.map((c,i)=>`<div class="item"><div class="body"><div class="res-h"><a class="ttl" href="#circle-${c.id}">${esc(c.name)}</a>${i===0?'<span class="st ok">Best match</span>':''}</div><div><span class="eyebrow">Decides on</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${hl(c.domain||'No domain written yet.', terms)}</div></div>${c.aim?`<div class="muted" style="font-size:13.5px">Aim: ${snip(c.aim, terms)}</div>`:''}${ask(c)?`<div class="bl-meta">${ask(c)}</div>`:''}</div><div class="side">${typeChip(c.type)}</div></div>`).join('')}</div>`);
   if(rp.length) out += sec('Policies in force', `<div class="list">${rp.map(p=>`<div class="item"><div class="body"><a class="ttl" href="#proposal-${p.id}">${hl(p.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(p.proposal||p.driver, terms)}</div><div class="bl-meta">${esc(circleName(p.circleId))}${p.decided?` · consented <span class="mono">${mdy(p.decided)}</span>`:''}</div></div></div>`).join('')}</div>`);
   if(rw.length) out += sec('Wiki pages', `<div class="list">${rw.slice(0,8).map(w=>`<div class="item"><div class="body"><a class="ttl" href="#wiki-${w.id}">${hl(w.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(w.summary || w.body, terms)}</div><div class="bl-meta">${esc(WCATS[w.category]||'')} · ${esc(circleName(w.circleId))}</div></div></div>`).join('')}</div>`);
   if(rn.length) out += sec('Community updates', `<div class="list">${rn.slice(0,8).map(n=>`<div class="item"><div class="body"><a class="ttl" href="#overview">${hl(n.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(n.body, terms)}</div><div class="bl-meta">${esc(circleName(n.circleId))} · <span class="mono">${mdy(n.date)}</span></div></div></div>`).join('')}</div>`);
   if(rm.length) out += sec('Meeting takeaways', `<div class="list">${rm.slice(0,8).map(m=>`<div class="item"><div class="body"><a class="ttl" href="#meeting-${m.id}">${esc(circleName(m.circleId))} · <span class="mono">${mdy(m.date)}</span></a><div class="muted" style="font-size:13.5px">${snip(m.takeaways || (m.agenda||[]).map(a=>a.title+': '+(a.outcome||'')).join(' · '), terms)}</div></div></div>`).join('')}</div>`);
   return out;
+}
+
+
+/* ============ Domains: what each circle decides ============ */
+const D_STATUS = {active:['Active','ok'], open:['Not assigned yet','warn'], retired:['Retired','mute']};
+function liveDomains(){ return vals('domains').filter(d => d.status !== 'retired'); }
+function circleDomains(cid){ return vals('domains').filter(d => d.circleId === cid && d.status !== 'retired').sort((a,b) => (a.title||'').localeCompare(b.title||'')); }
+function generalCircle(){ return vals('circles').find(c => c.type === 'general') || null; }
+function decRef(ref){ if(!ref) return ''; const [k, id] = ref.split(':'); return k === 'proposal' && S.proposals[id] ? `<a href="#proposal-${id}">${esc(S.proposals[id].title)}</a>` : k === 'meeting' && S.meetings[id] ? `<a href="#meeting-${id}">Meeting of ${esc(circleName(S.meetings[id].circleId))}, ${mdy(S.meetings[id].date)}</a>` : ''; }
+let domFilterC = '', domFilterS = '';
+function domainTable(list, compact){
+  if(!compact){
+    if(domFilterC === '__open') list = list.filter(d => !d.circleId); else if(domFilterC) list = list.filter(d => d.circleId === domFilterC);
+    if(domFilterS === 'retired') list = vals('domains').filter(d => d.status === 'retired' && (!domFilterC || d.circleId === domFilterC));
+  }
+  const ord = d => d.circleId ? 1 : 0;
+  list = list.slice().sort((a,b) => ord(a)-ord(b) || circleName(a.circleId).localeCompare(circleName(b.circleId)) || (a.title||'').localeCompare(b.title||''));
+  const filters = compact ? '' : `<div class="ptools"><select id="df-circle" class="sel" aria-label="${tm('Circle')}"><option value="">All ${tm('circles')}</option><option value="__open" ${domFilterC==='__open'?'selected':''}>Not assigned yet</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===domFilterC?'selected':''}>${esc(c.name)}</option>`).join('')}</select><select id="df-status" class="sel" aria-label="Status"><option value="">Active and open</option><option value="retired" ${domFilterS==='retired'?'selected':''}>Retired</option></select></div>`;
+  if(!list.length) return filters + emptyBox(vals('domains').length ? 'No domains match.' : `No domains yet. Add what each ${tm('circle')} decides, or ask who decides something.`);
+  return filters + `<div class="tscroll"><table class="ptable"><thead><tr><th>Domain</th><th>Decided by</th><th>Status</th><th>Last change</th></tr></thead><tbody>${list.map(d => { const [sl, sc] = D_STATUS[d.status||'active']; const last = (d.history||[]).slice(-1)[0]; return `<tr>
+    <td><a href="#domain-${d.id}"><b>${esc(d.title)}</b></a>${d.description?`<div class="muted clamp" style="font-size:13px">${esc(d.description)}</div>`:''}</td>
+    <td>${d.circleId && S.circles[d.circleId] ? `<a href="#circle-${d.circleId}">${esc(circleName(d.circleId))}</a>` : `<span class="muted">Nobody yet${generalCircle()?` · ${esc(generalCircle().name)} will discuss`:''}</span>`}</td>
+    <td>${stChip(sl, sc)}</td><td class="mono" style="white-space:nowrap">${mdy(last?.date || d.created) || '—'}</td></tr>`; }).join('')}</tbody></table></div>`;
+}
+function circleDomainsPanel(c){
+  const list = circleDomains(c.id);
+  return `<section class="panel"><div class="ph"><h2>Domains · what this ${tm('circle')} decides</h2><div class="row"><a class="bl-meta" href="#search">All domains</a><button class="btn sm w" data-act="newDomain" data-circle="${c.id}" type="button">Add a domain</button></div></div>
+    ${list.length ? `<div class="list">${list.map(d => `<div class="item dom-item"><div class="body"><a class="ttl" href="#domain-${d.id}">${esc(d.title)}</a>${d.description?`<div class="muted clamp" style="font-size:13.5px">${esc(d.description)}</div>`:''}</div><div class="side w"><button class="btn sm ghost" data-act="domMove" data-id="${d.id}" type="button">Move</button><button class="btn sm ghost" data-act="domMerge" data-id="${d.id}" type="button">Merge</button><button class="btn sm ghost" data-act="domRetire" data-id="${d.id}" type="button">Retire</button></div></div>`).join('')}</div>` : `<p class="muted">No domains listed yet.${c.domain ? '' : ` Add the areas this ${tm('circle')} decides on its own.`}</p>`}
+  </section>`;
+}
+function vDomain(id){
+  const d = S.domains[id]; if(!d) return mode === 'loading' ? '' : emptyBox('This domain does not exist.', `<a class="btn sm" href="#search">All domains</a>`);
+  const [sl, sc] = D_STATUS[d.status||'active'];
+  const into = d.mergedInto && S.domains[d.mergedInto];
+  const H = {created:'Added', raised:'Raised as an open question', assigned:'Assigned', moved:'Moved', merged:'Merged', retired:'Retired', edited:'Edited', reopened:'Reopened'};
+  return `<nav class="crumb"><a href="#search">Who decides?</a><span>/</span><span>${esc(d.title)}</span></nav>
+  <div class="head"><div class="t"><span class="eyebrow">Domain</span><h1>${esc(d.title)}</h1><div class="row">${stChip(sl, sc)}<span class="muted" style="font-size:14px">${d.circleId && S.circles[d.circleId] ? `Decided by <a href="#circle-${d.circleId}">${esc(circleName(d.circleId))}</a>` : `Nobody decides this yet${generalCircle()?`. It is on the backlog of <a href="#circle-${generalCircle().id}-meetings">${esc(generalCircle().name)}</a>`:''}.`}</span></div></div>
+    <div class="row w">${d.status === 'retired' ? `<button class="btn" data-act="domReopen" data-id="${d.id}" type="button">Reopen</button>` : `${d.circleId ? `<button class="btn" data-act="domMove" data-id="${d.id}" type="button">Move to another ${tm('circle')}</button>` : `<button class="btn pri" data-act="domMove" data-id="${d.id}" type="button">Assign to a ${tm('circle')}</button>`}<button class="btn" data-act="domMerge" data-id="${d.id}" type="button">Merge</button><button class="btn" data-act="domRetire" data-id="${d.id}" type="button">Retire</button>`}<button class="btn ghost sm" data-act="domEdit" data-id="${d.id}" type="button">Edit</button></div></div>
+  ${into ? `<p class="muted">Merged into <a href="#domain-${into.id}">${esc(into.title)}</a>.</p>` : ''}
+  ${d.description ? `<section class="panel"><h2>What it covers</h2><div class="txt" style="white-space:pre-wrap">${esc(d.description)}</div></section>` : ''}
+  <section class="panel"><h2>History</h2>${(d.history||[]).length ? `<div class="list">${d.history.slice().reverse().map(h => `<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(h.date)}</span><div class="body"><b>${H[h.action]||h.action}</b>${h.from!==undefined||h.to!==undefined ? `<div style="font-size:13.5px">${h.from!==undefined?`${h.from?esc(circleName(h.from)):'Nobody'} → `:''}${h.to!==undefined?(h.to?esc(circleName(h.to)):'Nobody'):''}</div>` : ''}${h.note?`<div class="muted" style="font-size:13.5px;white-space:pre-wrap">${esc(h.note)}</div>`:''}${h.ref&&decRef(h.ref)?`<div class="bl-meta">Decided in ${decRef(h.ref)}</div>`:''}${h.by?`<div class="bl-meta">By ${esc(h.by)}</div>`:''}</div></div>`).join('')}</div>` : '<p class="muted">No changes recorded.</p>'}</section>`;
+}
+function decisionPicker(){
+  const props = vals('proposals').filter(p => p.stage === 'consented').sort(byDateDesc('decided'));
+  const meets = vals('meetings').sort(byDateDesc('date')).slice(0, 40);
+  return `<label class="f"><span>Where was this decided? (optional)</span><select id="dm-ref"><option value="">Not linked</option>${props.length?`<optgroup label="Consented proposals">${props.map(p => `<option value="proposal:${p.id}">${esc(p.title)}</option>`).join('')}</optgroup>`:''}${meets.length?`<optgroup label="Meetings">${meets.map(m => `<option value="meeting:${m.id}">${esc(circleName(m.circleId))} · ${mdy(m.date)}</option>`).join('')}</optgroup>`:''}</select></label>`;
+}
+const hist = (action, extra) => ({date:todayISO(), action, by:me.name || '', ...extra});
+async function dropGeneralBacklog(domId){
+  for(const c of vals('circles')){ if((c.backlog||[]).some(b => b && b.ref === 'domain:' + domId)){ const cc = clone(c); cc.backlog = cc.backlog.filter(b => !(b && b.ref === 'domain:' + domId)); await put('circles', cc); } }
+}
+function newDomain(d){
+  const open = !!d.open, cid = d.circle || '';
+  openModal(open ? 'Ask who decides' : 'Add a domain', `${open ? `<p class="muted" style="font-size:14px">Use this when nobody knows who decides something. It is added as an open question${generalCircle()?` to the backlog of <b>${esc(generalCircle().name)}</b>, which discusses it and assigns it to a ${tm('circle')}`:''}.</p>` : ''}
+    ${fText('dm-title', open ? 'The question or area *' : 'Domain *', d.title || '', {ph: open ? 'e.g. How we organize the kitchen' : 'e.g. Shared space bookings'})}
+    ${fArea('dm-desc','What it covers', '', {rows:3, ph:'Optional. What is included, and what is not'})}
+    ${open ? '' : `<label class="f"><span>Decided by</span><select id="dm-circle"><option value="">Nobody yet (open question)</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>`}`, async () => {
+    const title = gv('dm-title'); if(!title){ $('#dm-title').classList.add('bad'); throw new Invalid('Describe the domain.'); }
+    const circleId = open ? '' : gv('dm-circle');
+    const dom = {id:uid('d'), title, description:gv('dm-desc'), circleId, status: circleId ? 'active' : 'open', created:todayISO(), history:[hist(circleId ? 'created' : 'raised', circleId ? {to:circleId} : {})]};
+    if(!(await put('domains', dom))) return false;
+    if(!circleId){ const g = generalCircle(); if(g){ const gc2 = clone(g); gc2.backlog = [...(gc2.backlog||[]), {text:'Who decides: ' + title, note:dom.description, fromCircleId:'', by:me.name||'', date:todayISO(), ref:'domain:' + dom.id}]; await put('circles', gc2); } }
+    toast(circleId ? 'Domain added' : `Added as an open question${generalCircle()?' to the backlog of ' + generalCircle().name:''}`); return true;
+  }, {saveLabel: open ? 'Raise question' : 'Add domain'});
+}
+function domMove(id){
+  const d = clone(S.domains[id]); if(!d) return;
+  openModal(d.circleId ? 'Move domain' : 'Assign domain', `<p style="font-size:14px"><b>${esc(d.title)}</b>${d.circleId?` is decided by <b>${esc(circleName(d.circleId))}</b>.`:' is not assigned yet.'}</p>
+    <label class="f"><span>New ${tm('circle')} *</span><select id="dm-to"><option value="">Choose…</option>${ordered().filter(([c]) => c.id !== d.circleId).map(([c]) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label>
+    ${decisionPicker()}${fArea('dm-note','Note',  '', {rows:2, ph:'Optional. Why it moved'})}`, async () => {
+    const to = gv('dm-to'); if(!to){ $('#dm-to').classList.add('bad'); throw new Invalid(`Choose the ${tm('circle')}.`); }
+    const from = d.circleId || '';
+    d.history = [...(d.history||[]), hist(from ? 'moved' : 'assigned', {from, to, ref:gv('dm-ref'), note:gv('dm-note')})];
+    d.circleId = to; d.status = 'active';
+    const ok = await put('domains', d); if(ok){ await dropGeneralBacklog(d.id); toast(`Now decided by ${circleName(to)}`); } return ok;
+  }, {saveLabel: d.circleId ? 'Move' : 'Assign'});
+}
+function domMerge(id){
+  const d = clone(S.domains[id]); if(!d) return;
+  const others = liveDomains().filter(x => x.id !== id).sort((a,b) => circleName(a.circleId).localeCompare(circleName(b.circleId)) || a.title.localeCompare(b.title));
+  if(!others.length){ toast('There is no other domain to merge with.'); return; }
+  openModal('Merge domains', `<p style="font-size:14px">Combine <b>${esc(d.title)}</b> with another domain. The other domain stays, and this one is retired with a link to it.</p>
+    <label class="f"><span>Merge into *</span><select id="dm-into"><option value="">Choose…</option>${others.map(o => `<option value="${o.id}">${esc(o.title)} · ${o.circleId?esc(circleName(o.circleId)):'not assigned'}</option>`).join('')}</select></label>
+    ${fText('dm-newtitle','New name for the combined domain','',{ph:'Optional. Leave empty to keep its name'})}
+    ${decisionPicker()}${fArea('dm-note','Note','',{rows:2})}`, async () => {
+    const tid = gv('dm-into'); if(!tid){ $('#dm-into').classList.add('bad'); throw new Invalid('Choose the domain to merge into.'); }
+    const t = clone(S.domains[tid]); const ref = gv('dm-ref'), note = gv('dm-note');
+    const nt = gv('dm-newtitle');
+    t.history = [...(t.history||[]), hist('merged', {note:[`Merged with "${d.title}"`, nt && nt !== t.title ? `Renamed from "${t.title}"` : '', note].filter(Boolean).join('. '), ref})];
+    if(nt) t.title = nt;
+    if(d.description) t.description = [t.description, d.description].filter(Boolean).join('\n');
+    d.status = 'retired'; d.mergedInto = t.id; d.history = [...(d.history||[]), hist('merged', {note:[`Merged into "${t.title}"`, note].filter(Boolean).join('. '), ref})];
+    if(!(await put('domains', t))) return false;
+    const ok = await put('domains', d); if(ok){ await dropGeneralBacklog(d.id); toast('Domains merged'); location.hash = 'domain-' + t.id; } return ok;
+  }, {saveLabel:'Merge'});
+}
+function domRetire(id){
+  const d = clone(S.domains[id]); if(!d) return;
+  openModal('Retire domain', `<p style="font-size:14px">Retire <b>${esc(d.title)}</b> when nobody needs to decide it anymore. It stays in the history and can be reopened.</p>${decisionPicker()}${fArea('dm-note','Why it is retired','',{rows:2})}`, async () => {
+    d.status = 'retired'; d.history = [...(d.history||[]), hist('retired', {ref:gv('dm-ref'), note:gv('dm-note')})];
+    const ok = await put('domains', d); if(ok){ await dropGeneralBacklog(d.id); toast('Domain retired'); } return ok;
+  }, {saveLabel:'Retire'});
+}
+function domEdit(id){
+  const d = clone(S.domains[id]); if(!d) return;
+  openModal('Edit domain', `${fText('dm-title','Domain *',d.title)}${fArea('dm-desc','What it covers',d.description,{rows:3})}`, async () => {
+    const title = gv('dm-title'); if(!title){ $('#dm-title').classList.add('bad'); throw new Invalid('Describe the domain.'); }
+    if(title !== d.title || gv('dm-desc') !== (d.description||'')) d.history = [...(d.history||[]), hist('edited', {note: title !== d.title ? `Renamed from "${d.title}"` : 'Description changed'})];
+    d.title = title; d.description = gv('dm-desc');
+    const ok = await put('domains', d); if(ok) toast('Domain saved'); return ok;
+  }, {saveLabel:'Save', onDelete: (mode !== 'supabase' || isAdmin) ? async () => { await remove('domains', d.id); await dropGeneralBacklog(d.id); location.hash = 'search'; toast('Domain deleted'); return true; } : null, deleteLabel:'Delete permanently'});
+}
+/* Turn each circle's old domain text into domain items, once */
+let domMigrating = false;
+function splitDomainText(t){
+  return String(t||'').split(/\n|;|,|·/).map(x => x.trim().replace(/^(and|or)\s+/i, '').replace(/[.]+$/, '').trim()).filter(x => x.length > 1).map(x => x[0].toUpperCase() + x.slice(1));
+}
+function queueDomainMigration(){
+  if(domMigrating || !canWrite || mode === 'loading' || (mode === 'supabase' && me.role === 'guest')) return;
+  const todo = vals('circles').filter(c => c.domain && !c.domainsMigrated);
+  if(!todo.length) return;
+  domMigrating = true;
+  setTimeout(async () => {
+    try{
+      for(const c of todo){
+        const items = splitDomainText(c.domain);
+        for(let i = 0; i < items.length; i++){
+          const id = 'dm' + (c.id + i).replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 18) + i;
+          if(!S.domains[id]) await put('domains', {id, title:items[i], description:'', circleId:c.id, status:'active', created:todayISO(), history:[{date:todayISO(), action:'created', to:c.id, note:`From the ${tm('circle')}'s domain description`}], ...(c.example ? {example:true} : {})});
+        }
+        const fresh = S.circles[c.id]; if(fresh) await put('circles', {...clone(fresh), domainsMigrated:true});
+      }
+    } finally { domMigrating = false; render(); }
+  }, 0);
 }
 
 /* ============ Role selection ============ */
@@ -2721,6 +2990,8 @@ const ACTS = {
   newProject: d => editProject(null, d.circle),
   editProject: d => editProject(d.id),
   workProject: d => { workProject = workProject === d.p && d.p !== 'all' ? 'all' : d.p; render(); },
+  toggleProj: d => { if(projOpen.has(d.k)) projOpen.delete(d.k); else projOpen.add(d.k); saveProjClosed(); render(); },
+  projAll: d => { if(d.v === 'open') projOpen.clear(); else { vals('projects').forEach(p => projOpen.add(p.id)); projOpen.add('__none'); } saveProjClosed(); render(); },
   workMode: d => { workMode = d.v; try{ localStorage.setItem('cc-workmode', d.v); }catch(e){} render(); },
   openProject: d => { const p = S.projects[d.id]; if(!p) return; workProject = p.id; location.hash = 'circle-' + p.circleId + '-actions'; },
   workView: d => { workView = d.v; try{ localStorage.setItem('cc-workview', d.v); }catch(e){} render(); },
@@ -2770,6 +3041,15 @@ const ACTS = {
   removeRow: (d, el) => el.closest('.reprow').remove(),
   backlogRemove: async d => { const c = clone(S.circles[d.circle]); c.backlog = (c.backlog||[]).filter((_,i)=>i!==+d.i); await put('circles', c); },
   saveWorkspace,
+  themePreset: d => { if(d.k === 'custom'){ const c = orgCfg().customTheme; themeDraft = {...(c || themeCfg()), preset:'custom'}; if(!c) toast('Now pick your colors below'); } else { themeDraft = {...THEME_PRESETS[d.k], preset:d.k}; delete themeDraft.label; } render(); },
+  saveTheme: async () => { const t = themeDraft || themeCfg(); const out = {preset:t.preset}; THEME_KEYS.forEach(([k]) => out[k] = t[k]); const extra = t.preset === 'custom' ? {customTheme:{...out}} : {}; const ok = await put('org', {...orgCfg(), id:'main', theme:out, ...extra}); if(ok){ themeDraft = null; toast('Colors saved'); render(); } },
+  discardTheme: () => { themeDraft = null; render(); },
+  newDomain: d => newDomain(d),
+  domMove: d => domMove(d.id),
+  domMerge: d => domMerge(d.id),
+  domRetire: d => domRetire(d.id),
+  domEdit: d => domEdit(d.id),
+  domReopen: async d => { const x = clone(S.domains[d.id]); if(!x) return; x.status = x.circleId ? 'active' : 'open'; delete x.mergedInto; x.history = [...(x.history||[]), hist('reopened', {})]; if(await put('domains', x)) toast('Domain reopened'); },
   downloadData: () => downloadBackup(),
   termPick: d => { $('#tm-circle').value = d.a; $('#tm-circles').value = d.b; const c = d.a === 'circle'; $('#tm-general').value = c ? 'General circle' : 'General ' + d.a; $('#tm-mission').value = c ? 'Mission circle' : 'Mission ' + d.a; $('#tm-department').value = c ? 'Department circle' : d.a === 'department' ? 'Department' : 'Department ' + d.a; $('#tm-helping').value = c ? 'Helping circle' : 'Helping ' + d.a; },
   saveTerms: () => { const t = {}; ['circle','circles','general','mission','department','helping'].forEach(k => { const v = gv('tm-'+k); if(v) t[k] = v; }); if(t.circle === 'circle' && t.circles === 'circles' && t.general === TERM_DEFAULTS.general && t.mission === TERM_DEFAULTS.mission && t.department === TERM_DEFAULTS.department && t.helping === TERM_DEFAULTS.helping) return saveOrg({terms:{}}, 'Terminology saved'); return saveOrg({terms:t}, 'Terminology saved'); },
@@ -2815,12 +3095,16 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && $('#modal-root').innerHTML) closeModal();
+  if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.jrow')){ e.preventDefault(); editAction(e.target.dataset.id); return; }
+  if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.jg-head')){ e.preventDefault(); ACTS.toggleProj(e.target.dataset); return; }
   if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.tcard')){ e.preventDefault(); editAction(e.target.dataset.id); return; }
   if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.map-node')){ e.preventDefault(); location.hash = 'circle-'+e.target.dataset.id; }
 });
 document.addEventListener('toggle', e => { if(e.target.matches && e.target.matches('details.mod[data-mod]')){ if(e.target.open) openMods.add(e.target.dataset.mod); else openMods.delete(e.target.dataset.mod); } }, true);
 document.addEventListener('toggle', e => { if(e.target.id === 'upcoming'){ upOpen = e.target.open; const h = e.target.querySelector('.up-hint'); if(h) h.textContent = upOpen ? 'Hide' : 'Show'; } }, true);
 document.addEventListener('change', e => {
+  if(e.target.id === 'df-circle'){ domFilterC = e.target.value; render(); return; }
+  if(e.target.id === 'df-status'){ domFilterS = e.target.value; render(); return; }
   if(e.target.id === 'cf-type'){ $('#cf-optwrap').hidden = e.target.value !== 'choice'; return; }
   if(e.target.id === 'prf-stage'){ propStage = e.target.value; render(); return; }
   if(e.target.id === 'prf-circle'){ propCircle = e.target.value; render(); return; }
@@ -2859,6 +3143,7 @@ document.addEventListener('submit', e => {
   searchQ = (f.querySelector('input').value || '').trim(); location.hash = 'search';
 });
 document.addEventListener('input', e => {
+  if(e.target.id && e.target.id.startsWith('th-') && e.target.type === 'color'){ themeDraft = {...(themeDraft || themeCfg()), [e.target.dataset.k]: e.target.value.toUpperCase(), preset:'custom'}; applyTheme(themeDraft); const sp = e.target.parentElement.querySelector('.mono'); if(sp) sp.textContent = e.target.value.toUpperCase(); document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('on')); const cc = document.querySelector('.theme-card.custom'); if(cc){ cc.classList.add('on'); cc.classList.remove('empty'); cc.style.setProperty('--rc', themeDraft.rail); cc.style.setProperty('--ac', themeDraft.accent); const row = cc.querySelector('.sw-row'); if(row) row.innerHTML = ['general','mission','department','helping'].map(k => `<i style="background:${themeDraft[k]}"></i>`).join(''); const hint = cc.querySelector('.muted'); if(hint) hint.remove(); } return; }
   if(e.target.classList && e.target.classList.contains('bad') && !e.target.matches('input.date')) e.target.classList.remove('bad');
   if(e.target.id === 'mp-filter'){ const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#mpick .mp').forEach(l => l.hidden = q && !l.dataset.n.includes(q)); return; }
   if(e.target.id === 'pq'){ peopleQ = e.target.value; const r = $('#people-list'); if(r) r.innerHTML = peopleList(); return; }
