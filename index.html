@@ -467,6 +467,26 @@ select.bad,textarea.bad{border-color:var(--bad)}
 .obj-open{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid var(--bad);border-radius:var(--r);font-size:14px}
 .dec:disabled{opacity:.5;cursor:not-allowed}
 .track a{color:inherit;text-decoration:none}.track a:hover{text-decoration:underline}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:4px}
+.tabs a{padding:10px 14px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14.5px;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a.on{color:var(--ink);border-color:var(--ink)}
+.req-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--warn);border-radius:var(--r);font-size:14px}
+/* date picker */
+.dp{position:fixed;z-index:1000;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:12px;width:272px;font-size:13.5px}
+.dp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dp-h b{font-size:14.5px}
+.dp-h button,.dp-f button{border:0;background:none;font:inherit;cursor:pointer;color:var(--ink);padding:4px 8px;border-radius:8px}
+.dp-h button:hover,.dp-f button:hover{background:var(--sunk)}
+.dp-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.dp-g span{font-size:11.5px;color:var(--muted);padding:4px 0}
+.dp-g button{border:0;background:none;font:inherit;font-variant-numeric:tabular-nums;height:34px;border-radius:8px;cursor:pointer;color:var(--ink)}
+.dp-g button:hover{background:var(--sunk)}
+.dp-g button.out{color:var(--muted);opacity:.55}
+.dp-g button.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.dp-g button.sel{background:var(--ink);color:var(--surface)}
+.dp-f{display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+input.date{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6E76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:34px;cursor:pointer}
 </style>
 
 <div id="gate" class="gate" hidden></div>
@@ -480,7 +500,6 @@ select.bad,textarea.bad{border-color:var(--bad)}
     <div class="rail-sec" id="rail-circles"></div>
     <div class="rail-foot">
       <div class="mode" id="mode"><i></i><span>Connecting…</span></div>
-      <button class="btn sm ghost" data-act="settings" type="button">Data &amp; settings</button>
     </div>
   </aside>
   <main class="main"><div class="wrap" id="view"></div></main>
@@ -491,13 +510,32 @@ select.bad,textarea.bad{border-color:var(--bad)}
 <script>
 /* ============ Constants ============ */
 const COLS = ['circles','meetings','proposals','actions','notices','selections','projects','wiki','courses','people','contacts','org'];
-const CTYPES = {mission:'Mission circle', general:'General circle', department:'Department circle', helping:'Helping circle'};
-const ROLE_KEYS = [
+const ROLE_DEFAULTS = [
   ['leader','Leader','Selected by the parent circle. Holds the operational overview and links down from the parent circle.'],
   ['delegate','Delegate','Selected by this circle. Represents this circle as a full member of the parent circle.'],
   ['facilitator','Facilitator','Runs meetings, keeps the meeting format and the consent process.'],
   ['secretary','Secretary','Prepares agendas with the leader and facilitator, keeps minutes and the logbook.']
 ];
+function termsCfg(){
+  const c = (S.org && S.org.main && S.org.main.terms) || {}; const one = c.circle || 'circle'; const cap = one[0].toUpperCase() + one.slice(1);
+  const auto = one === 'circle' ? TERM_DEFAULTS_BASE : {general:'General ' + one, mission:'Mission ' + one, department: one === 'department' ? 'Department' : 'Department ' + one, helping:'Helping ' + one};
+  return {...TERM_DEFAULTS_BASE, circles: c.circle ? plural(one) : 'circles', ...auto, ...c};
+}
+const TERM_DEFAULTS_BASE = {circle:'circle', circles:'circles', general:'General circle', mission:'Mission circle', department:'Department circle', helping:'Helping circle'};
+Object.defineProperty(window, 'CTYPES', {get(){ const t = termsCfg(); return {mission:t.mission, general:t.general, department:t.department, helping:t.helping}; }});
+Object.defineProperty(window, 'ROLE_KEYS', {get(){ const o = (S.org && S.org.main) || {}; return ROLE_DEFAULTS.map(([k,l,d]) => [k, (o.roleNames||{})[k] || l, (o.roleDesc||{})[k] || prose(d)]); }});
+const PROSE_RE = /\b(?:([Aa]n?) )?(circles|circle|Circles|Circle|leaders|leader|Leaders|Leader|delegates|delegate|Delegates|Delegate|facilitators|facilitator|Facilitators|Facilitator|secretaries|secretary|Secretaries|Secretary)\b/g;
+function prose(str){ const o = (S.org && S.org.main) || {}; if(!Object.keys(o.terms||{}).length && !Object.keys(o.roleNames||{}).length) return str; return String(str).replace(PROSE_RE, (m, a, w) => a ? art(a, w) : tm(w)); }
+const ROLE_WORD = {leader:0, delegate:1, facilitator:2, secretary:3};
+function plural(w){ return /[^aeiou]y$/i.test(w) ? w.slice(0,-1)+'ies' : /(s|x|ch|sh)$/i.test(w) ? w+'es' : w+'s'; }
+function tm(word){
+  const lw = word.toLowerCase(); const t = termsCfg(); let out;
+  if(lw === 'circle') out = t.circle; else if(lw === 'circles') out = t.circles;
+  else { const pl = /s$/.test(lw) && !(lw in ROLE_WORD); const base = pl ? (lw === 'secretaries' ? 'secretary' : lw.slice(0,-1)) : lw; const r = ROLE_DEFAULTS.find(x => x[0] === base); const lbl = r ? ((((S.org && S.org.main) || {}).roleNames || {})[base] || r[1]) : ''; out = r ? (pl ? plural(lbl) : lbl) : word; }
+  if(word[0] === word[0].toUpperCase()) return out[0].toUpperCase() + out.slice(1);
+  return out.toLowerCase();
+}
+function art(a, word){ const w = tm(word); const an = /^[aeiou]/i.test(w); return (a[0]==='A' ? (an?'An':'A') : (an?'an':'a')) + ' ' + w; }
 const AG_TYPES = {report:'Report', explore:'Explore', decide:'Consent decision', select:'Role selection', review:'Policy review'};
 const STAGES = {
   forming:{label:'Forming', cls:'info'},
@@ -636,12 +674,12 @@ function render(){
   else if(lg.dataset.src){ lg.innerHTML = DEFAULT_LOGO; lg.dataset.src = ''; }
   document.title = org.name || 'Sociocracy';
   const r = route();
-  const navItems = [['overview','Home'],['map','Circle map'],['circles','Circles'],['people','People'],['work','Work'],['wiki','Wiki'],['search','Who decides?']];
-  if(mode === 'supabase' && isAdmin && !navItems.some(n => n[0]==='access')) navItems.push(['access','Access']);
-  const cur = (/^(circle|meeting|proposal|selection)-/.test(r) || r === 'proposals') ? 'circles' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
+  const navItems = [['overview','Home'],['map',`${tm('Circle')} map`],['circles',`${tm('Circles')}`],['people','People'],['work','Work'],['wiki','Wiki']];
+  if(canAdmin()) navItems.push(['admin','Admin']);
+  const cur = (/^(circle|meeting|proposal|selection)-/.test(r) || r === 'proposals' || r === 'search') ? 'circles' : (r === 'access' || r.startsWith('admin')) ? 'admin' : (r.startsWith('wiki-') || r.startsWith('course-')) ? 'wiki' : r === 'community' ? 'overview' : r === 'guide' ? 'wiki' : r.startsWith('person-') ? 'people' : r;
   $('#nav').innerHTML = navItems.map(([h,l]) => `<a href="#${h}" class="${cur===h?'on':''}">${l}</a>`).join('');
   const oc = ordered();
-  $('#rail-circles').innerHTML = oc.length ? `<div class="eyebrow">Circles</div>` + oc.map(([c,d]) => `<a class="nav-c" href="#circle-${c.id}" style="--d:${Math.min(d,4)};display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px" ${r.startsWith('circle-'+c.id)?'aria-current="page"':''}><i class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--t-${c.type||'department'});flex:none"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${r.startsWith('circle-'+c.id)?'font-weight:700':''}">${esc(c.name)}</span></a>`).join('') : '';
+  $('#rail-circles').innerHTML = oc.length ? `<div class="eyebrow">${tm('Circles')}</div>` + oc.map(([c,d]) => `<a class="nav-c" href="#circle-${c.id}" style="--d:${Math.min(d,4)};display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px" ${r.startsWith('circle-'+c.id)?'aria-current="page"':''}><i class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--t-${c.type||'department'});flex:none"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${r.startsWith('circle-'+c.id)?'font-weight:700':''}">${esc(c.name)}</span></a>`).join('') : '';
   $('#mode').className = 'mode ' + mode;
   $('#mode').innerHTML = mode==='supabase' && me.role==='guest' ? `<i></i><span>Viewing as a guest${me.email?` (${esc(me.email)})`:''}<br><button class="linkbtn" data-act="${me.email?'signOut':'showSignIn'}" type="button">${me.email?'Sign out':'Sign in to edit'}</button></span>` : mode==='supabase' ? `<i></i><span>Signed in as ${esc(me.name || me.email)} · ${ROLE_INFO[me.role]?.[0]||''}<br>${personByEmail(me.email) ? `<a class="linkbtn" href="#person-${personByEmail(me.email).id}">My profile</a> · ` : ''}<button class="linkbtn" data-act="signOut" type="button">Sign out</button></span>` : `<i></i><span>${mode==='shared' ? (canWrite ? 'Shared with everyone who opens this page' : 'Shared · you have view-only access') : mode==='local' ? 'Saved in this browser only' : 'Connecting…'}</span>`;
   $('#dl-people').innerHTML = people().map(p => `<option value="${esc(p)}">`).join('');
@@ -657,10 +695,11 @@ function render(){
   else if((m = r.match(/^proposal-([a-z0-9]+)$/))) html = vProposal(m[1]);
   else if((m = r.match(/^selection-([a-z0-9]+)$/))) html = vSelection(m[1]);
   else if(r === 'proposals') html = vProposals();
-  else if(r === 'search') html = vSearch();
+  else if(r === 'search') html = vCircles('search');
   else if(r === 'work') html = vWork();
   else if(r === 'people') html = vPeople();
-  else if(r === 'access') html = vAccess();
+  else if(r === 'access') html = vAdmin('access');
+  else if((m = r.match(/^admin(?:-([a-z]+))?$/))) html = vAdmin(m[1]);
   else if((m = r.match(/^person-([a-z0-9]+)$/))) html = vPerson(m[1]);
   else if(r === 'wiki') html = vWiki();
   else if((m = r.match(/^wiki-([a-z0-9]+)$/))) html = vWikiPage(m[1]);
@@ -674,7 +713,7 @@ function render(){
   $('#view').innerHTML = html;
   if(aid){ const n = document.getElementById(aid); if(n){ if(aval != null) n.value = aval; n.focus(); if(asel) try{ n.setSelectionRange(asel[0], asel[1]); }catch(e){} } }
 }
-window.addEventListener('hashchange', () => { if(route() === 'access') membersList = null; render(); window.scrollTo(0,0); });
+window.addEventListener('hashchange', () => { adminDraft = null; if(route() === 'access' || route() === 'admin' || route() === 'admin-access') membersList = null; render(); window.scrollTo(0,0); });
 
 /* ---------- Shared pieces ---------- */
 function typeChip(t){ t = t || 'department'; return `<span class="chip t-${t}"><i style="background:var(--t-${t})"></i>${CTYPES[t]||t}</span>`; }
@@ -697,7 +736,7 @@ function meetingItem(m){
 function vOverview(){
   const org = S.org.main || {};
   const circles = vals('circles');
-  if(mode === 'loading') return `<div class="head"><div class="t"><h1>Loading your circles…</h1></div></div>`;
+  if(mode === 'loading') return `<div class="head"><div class="t"><h1>Loading your ${tm('circles')}…</h1></div></div>`;
   const gaps = roleGaps();
   const openProps = vals('proposals').filter(p => ['forming','ready','objection'].includes(p.stage));
   const oa = openActions(vals('actions'));
@@ -711,15 +750,15 @@ function vOverview(){
   let notices = vals('notices').sort(byDateDesc('date'));
   if(noticeFilter === 'everyone') notices = notices.filter(n => n.affectsAll); else if(noticeFilter !== 'all') notices = notices.filter(n => n.kind === noticeFilter);
   const f = [['all','All'],['everyone','Affects everyone'],...Object.entries(KINDS)];
-  const welcome = !circles.length ? `<div class="panel"><h2>Start your structure</h2><p class="muted" style="max-width:62ch">Most organizations start with one general circle and add department circles beneath it. Each circle gets an aim, a domain, members and the four core roles. You can also load an example organization to see how everything fits together, then remove it in one click.</p><div class="row"><a class="btn pri w" href="#circles">Go to Circles to create one</a><button class="btn w" data-act="loadExamples" type="button">Load an example organization</button><a class="btn ghost" href="#wiki">Learn how we work</a></div></div>` : '';
+  const welcome = !circles.length ? `<div class="panel"><h2>Start your structure</h2><p class="muted" style="max-width:62ch">Most organizations start with one general ${tm('circle')} and add department ${tm('circles')} beneath it. Each ${tm('circle')} gets an aim, a domain, members and the four core roles. You can also load an example organization to see how everything fits together, then remove it in one click.</p><div class="row"><a class="btn pri w" href="#circles">Go to ${tm('Circles')} to create one</a><button class="btn w" data-act="loadExamples" type="button">Load an example organization</button><a class="btn ghost" href="#wiki">Learn how we work</a></div></div>` : '';
   const exBanner = examplesPresent() ? `<div class="banner"><span>Example records are loaded so you can explore. They are labeled and can be removed at any time.</span><button class="btn sm w" data-act="removeExamples" type="button">Remove example data</button></div>` : '';
   return `
   ${exBanner}
-  <div class="head"><div class="t"><span class="eyebrow">Home</span><h1>${esc(org.name || 'Our circles')}</h1><p>${esc(org.tagline || 'Decisions, changes and news from every circle, so everyone stays informed.')}</p></div>
+  <div class="head"><div class="t"><span class="eyebrow">Home</span><h1>${esc(org.name || `Our ${tm('circles')}`)}</h1><p>${esc(org.tagline || `Decisions, changes and news from every ${tm('circle')}, so everyone stays informed.`)}</p></div>
   <div class="row"><button class="btn pri w" data-act="newNotice" type="button">Post an update</button></div></div>
   ${welcome}
   ${circles.length ? `<div class="stats mini">
-    <a class="stat" href="#circles"><b>${circles.length}</b><span>Circles</span></a>
+    <a class="stat" href="#circles"><b>${circles.length}</b><span>${tm('Circles')}</span></a>
     <a class="stat" href="#proposals"><b>${openProps.length}</b><span>Proposals in progress</span></a>
     <a class="stat ${gaps.length?'alert':''}" href="#map"><b>${gaps.length}</b><span>Roles to fill or reselect</span></a>
   </div>` : ''}
@@ -727,7 +766,7 @@ function vOverview(){
   <section class="panel"><div class="ph"><h2>Community board</h2></div>
     <div class="filters">${f.map(([k,l]) => `<button type="button" data-act="filter" data-k="${k}" class="${noticeFilter===k?'on':''}">${l}</button>`).join('')}<span class="fsep" aria-hidden="true"></span><button type="button" data-act="filter" data-k="upcoming" class="${noticeFilter==='upcoming'?'on':''}">Coming up <span class="fcount">${upcoming.length}</span>${lateN?`<span class="flate">${lateN} overdue</span>`:''}</button></div>
     ${noticeFilter === 'upcoming' ? (upcoming.length ? `<div class="list">${upcoming.map(u => `<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(u.date)}</span><div class="body" style="display:block">${u.html}</div></div>`).join('')}</div>` : `<p class="muted">No role terms, policy reviews or tasks due in the next weeks.</p>`) :
-    notices.length ? `<div>${notices.map(n => noticeHTML(n,false)).join('')}</div>` : emptyBox(noticeFilter==='all' ? 'Nothing posted yet. Updates appear here when a circle consents to a proposal, selects someone for a role, records a decision, or posts directly.' : 'Nothing matches this filter.', noticeFilter==='all' ? `<button class="btn sm w" data-act="newNotice" type="button">Post the first update</button>` : '')}
+    notices.length ? `<div>${notices.map(n => noticeHTML(n,false)).join('')}</div>` : emptyBox(noticeFilter==='all' ? `Nothing posted yet. Updates appear here when ${art('a','circle')} consents to a proposal, selects someone for a role, records a decision, or posts directly.` : 'Nothing matches this filter.', noticeFilter==='all' ? `<button class="btn sm w" data-act="newNotice" type="button">Post the first update</button>` : '')}
   </section>`;
 }
 
@@ -735,8 +774,8 @@ function vOverview(){
 function wrapWords(s, max){ const words=(s||'').split(/\s+/); const lines=[]; let cur=''; words.forEach(w=>{ if((cur+' '+w).trim().length>max && cur){ lines.push(cur); cur=w; } else cur=(cur+' '+w).trim(); }); if(cur) lines.push(cur); return lines.slice(0,3); }
 function vMap(){
   const list = vals('circles');
-  const head = `<div class="head"><div class="t"><span class="eyebrow">Structure</span><h1>Circle map</h1><p>Circles sit around the general circle. Each one is joined to the circle it belongs to by two lines: the <b>leader</b>, selected by the general circle, carries information to the circle, and the <b>delegate</b>, selected by the circle, carries its voice back. Select a circle to see its aim, domain and people.</p></div></div>`;
-  if(!list.length) return head + emptyBox('No circles yet. Create them on the Circles page and they appear here.', `<a class="btn sm" href="#circles">Go to Circles</a>`);
+  const head = `<div class="head"><div class="t"><span class="eyebrow">Structure</span><h1>${tm('Circle')} map</h1><p>${tm('Circles')} sit around the general ${tm('circle')}. Each one is joined to the ${tm('circle')} it belongs to by two lines: the <b>${tm('leader')}</b>, selected by the general ${tm('circle')}, carries information to the ${tm('circle')}, and the <b>${tm('delegate')}</b>, selected by the ${tm('circle')}, carries its voice back. Select ${art('a','circle')} to see its aim, domain and people.</p></div></div>`;
+  if(!list.length) return head + emptyBox(`No ${tm('circles')} yet. Create them on the ${tm('Circles')} page and they appear here.`, `<a class="btn sm" href="#circles">Go to ${tm('Circles')}</a>`);
   // Radial layout: the general circle in the middle, its circles around it, sub-circles further out
   const R = 34, RC = 58, LABEL = 96;
   const ids = new Set(list.map(c => c.id));
@@ -771,8 +810,8 @@ function vMap(){
     const seg = o => { const s0 = rad(parent.id) + 12, s1 = rad(child.id) + 12; return [P.x + ux*s0 + nx*o, P.y + uy*s0 + ny*o, Q.x - ux*s1 + nx*o, Q.y - uy*s1 + ny*o].map(v => v.toFixed(1)); };
     const L = child.roles?.leader?.holder, D = child.roles?.delegate?.holder;
     const [a1,b1,a2,b2] = seg(-4), [c1,d1,c2,d2] = seg(4);
-    links += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="var(--lead)" stroke-width="2" marker-end="url(#arL)" ${L?'':'stroke-dasharray="5 4" opacity=".5"'}><title>Leader of ${esc(child.name)}: ${esc(L||'not selected')} (selected by ${esc(parent.name)})</title></line>`;
-    links += `<line x1="${c2}" y1="${d2}" x2="${c1}" y2="${d1}" stroke="var(--deleg)" stroke-width="2" marker-end="url(#arD)" ${D?'':'stroke-dasharray="5 4" opacity=".5"'}><title>Delegate of ${esc(child.name)}: ${esc(D||'not selected')} (selected by ${esc(child.name)})</title></line>`;
+    links += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="var(--lead)" stroke-width="2" marker-end="url(#arL)" ${L?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Leader')} of ${esc(child.name)}: ${esc(L||'not selected')} (selected by ${esc(parent.name)})</title></line>`;
+    links += `<line x1="${c2}" y1="${d2}" x2="${c1}" y2="${d1}" stroke="var(--deleg)" stroke-width="2" marker-end="url(#arD)" ${D?'':'stroke-dasharray="5 4" opacity=".5"'}><title>${tm('Delegate')} of ${esc(child.name)}: ${esc(D||'not selected')} (selected by ${esc(child.name)})</title></line>`;
   });
   Object.keys(pos).forEach(id => {
     const c = S.circles[id]; if(!c) return;
@@ -830,23 +869,27 @@ function vMap(){
   const gl = roleGaps();
   return head + `
   <div class="legend">
-    <span><svg width="30" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--lead)" stroke-width="2"/><path d="M23 1L30 5L23 9z" fill="var(--lead)"/></svg>Leader (out to the circle)</span>
-    <span><svg width="30" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--deleg)" stroke-width="2"/><path d="M23 1L30 5L23 9z" fill="var(--deleg)"/></svg>Delegate (back toward the center)</span>
+    <span><svg width="30" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--lead)" stroke-width="2"/><path d="M23 1L30 5L23 9z" fill="var(--lead)"/></svg>${tm('Leader')} (out to the ${tm('circle')})</span>
+    <span><svg width="30" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--deleg)" stroke-width="2"/><path d="M23 1L30 5L23 9z" fill="var(--deleg)"/></svg>${tm('Delegate')} (back toward the center)</span>
     <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 4"/></svg>Role not selected</span>
     <span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--warn)"/></svg>Roles to fill or reselect</span>
     ${Object.keys(CTYPES).map(t=>`<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--t-${t})"/></svg>${CTYPES[t]}</span>`).join('')}
   </div>
   <div class="mapbox"><svg width="${width}" height="${height}" viewBox="${vb}" style="width:100%;height:auto;max-width:${Math.min(width,860)}px;min-width:${Math.min(width,560)}px" role="img" aria-label="Diagram of circles and their links">${defs}${links}${nodes}</svg></div>
   <section class="panel"><div class="ph"><h2>Roles to fill or reselect</h2></div>
-    ${gl.length ? `<div class="tscroll"><table><thead><tr><th>Circle</th><th>Role</th><th>Holder</th><th>Term ends</th><th>Status</th><th></th></tr></thead><tbody>${gl.map(g=>`<tr><td><a href="#circle-${g.c.id}">${esc(g.c.name)}</a></td><td>${g.label}</td><td>${esc(g.r?.holder||'—')}</td><td class="mono">${mdy(g.r?.termEnd)||'—'}</td><td>${stChip(g.s,g.cls)}</td><td>${selButton(g.c, g.k)}</td></tr>`).join('')}</tbody></table></div>` : `<p class="muted">Every circle has its roles filled with current terms.</p>`}
+    ${gl.length ? `<div class="tscroll"><table><thead><tr><th>${tm('Circle')}</th><th>Role</th><th>Holder</th><th>Term ends</th><th>Status</th><th></th></tr></thead><tbody>${gl.map(g=>`<tr><td><a href="#circle-${g.c.id}">${esc(g.c.name)}</a></td><td>${g.label}</td><td>${esc(g.r?.holder||'—')}</td><td class="mono">${mdy(g.r?.termEnd)||'—'}</td><td>${stChip(g.s,g.cls)}</td><td>${selButton(g.c, g.k)}</td></tr>`).join('')}</tbody></table></div>` : `<p class="muted">Every ${tm('circle')} has its roles filled with current terms.</p>`}
   </section>`;
 }
 
 /* ---------- Circles directory ---------- */
-function vCircles(){
+function vCircles(tab){
   const oc = ordered();
-  const head = `<div class="head"><div class="t"><span class="eyebrow">Directory</span><h1>Circles</h1><p>What each circle is for, what it decides, and who to talk to.</p></div><div class="row"><button class="btn pri w" data-act="newCircle" type="button">New circle</button></div></div>`;
-  if(!oc.length) return head + emptyBox('No circles yet.', `<button class="btn sm w" data-act="newCircle" type="button">Create a circle</button>`);
+  const head = `<div class="head"><div class="t"><span class="eyebrow">Directory</span><h1>${tm('Circles')}</h1><p>What each ${tm('circle')} is for, what it decides, and who to talk to.</p></div><div class="row"><button class="btn pri w" data-act="newCircle" type="button">New ${tm('circle')}</button></div></div>
+  <div class="tabs" role="tablist"><a href="#circles" role="tab" class="${tab!=='search'?'on':''}" aria-selected="${tab!=='search'}">All ${tm('circles')}</a><a href="#search" role="tab" class="${tab==='search'?'on':''}" aria-selected="${tab==='search'}">Who decides?</a></div>`;
+  if(tab === 'search') return head + `<p class="muted" style="max-width:70ch">Search every ${tm('circle')}'s domain and aim, the policies in force, the wiki, community updates and meeting takeaways. The ${tm('circle')} whose domain covers a topic is the one that decides it.</p>
+  <input id="q" class="bigsearch" value="${esc(searchQ)}" placeholder="e.g. room booking, budget, new members" aria-label="Search" autocomplete="off">
+  <div id="results" style="display:flex;flex-direction:column;gap:18px">${searchResults()}</div>`;
+  if(!oc.length) return head + emptyBox(`No ${tm('circles')} yet.`, `<button class="btn sm w" data-act="newCircle" type="button">Create ${art('a','circle')}</button>`);
   return head + `<div class="ccards">${oc.map(([c])=>{
     const parent = S.circles[c.parentId];
     const props = circleProposals(c.id).filter(p=>['forming','ready','objection'].includes(p.stage)).length;
@@ -862,7 +905,7 @@ function vCircles(){
 /* ---------- Circle page ---------- */
 function vCircle(id, tab){
   const c = S.circles[id];
-  if(!c) return mode==='loading' ? '' : emptyBox('This circle does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to circles</a>`);
+  if(!c) return mode==='loading' ? '' : emptyBox(`This ${tm('circle')} does not exist or was deleted.`, `<a class="btn sm" href="#circles">Back to ${tm('circles')}</a>`);
   const parent = S.circles[c.parentId];
   const meets = circleMeetings(id), props = circleProposals(id), acts = circleActions(id);
   const consented = props.filter(p=>p.stage==='consented');
@@ -875,7 +918,7 @@ function vCircle(id, tab){
   if(tab==='logbook') body = cLogbook(c, consented, meets);
   return `
   <div class="head"><div class="t"><div class="row">${typeChip(c.type)}${parent?`<span class="muted" style="font-size:13px">Within <a href="#circle-${parent.id}">${esc(parent.name)}</a></span>`:''}${c.example?'<span class="chip">Example</span>':''}</div><h1>${esc(c.name)}</h1>${c.aim?`<p>${esc(c.aim)}</p>`:''}</div>
-    <div class="row"><button class="btn w" data-act="editCircle" data-id="${c.id}" type="button">Edit circle</button><button class="btn pri w" data-act="newMeeting" data-circle="${c.id}" type="button">Record a meeting</button></div></div>
+    <div class="row"><button class="btn w" data-act="editCircle" data-id="${c.id}" type="button">Edit ${tm('circle')}</button><button class="btn pri w" data-act="newMeeting" data-circle="${c.id}" type="button">Record a meeting</button></div></div>
   <nav class="tabs">${tabs.map(([k,l,n])=>`<a href="#circle-${id}-${k}" class="${tab===k?'on':''}">${l}${n?`<span class="n">${n}</span>`:''}</a>`).join('')}</nav>
   ${body}`;
 }
@@ -886,31 +929,31 @@ function cAbout(c){
   const extra = (c.extraRoles||[]).map(r=>{ const [s,cls]=roleState(r); return `<tr><td>${descCell(r.title, r.description, r.qualifications)}</td><td>${r.holder?person(r.holder):'<span class="muted">Not selected</span>'}</td><td class="mono">${mdy(r.selected)||'—'}</td><td class="mono">${mdy(r.termEnd)||'—'}</td><td>${stChip(s,cls)}</td><td>${selButton(c,'x:'+r.title)}</td></tr>`; }).join('');
   return `
   <div class="cols">
-    <section class="panel"><h2>Aim</h2><div class="def"><span class="eyebrow">What this circle does</span><div class="txt">${esc(c.aim || 'Not written yet.')}</div></div>
-      <div class="def"><span class="eyebrow">Domain · what this circle decides</span><div class="txt">${esc(c.domain || 'Not written yet.')}</div></div>
-      ${c.description?`<div class="def"><span class="eyebrow">More about this circle</span><div class="txt">${esc(c.description)}</div></div>`:''}
+    <section class="panel"><h2>Aim</h2><div class="def"><span class="eyebrow">What this ${tm('circle')} does</span><div class="txt">${esc(c.aim || 'Not written yet.')}</div></div>
+      <div class="def"><span class="eyebrow">Domain · what this ${tm('circle')} decides</span><div class="txt">${esc(c.domain || 'Not written yet.')}</div></div>
+      ${c.description?`<div class="def"><span class="eyebrow">More about this ${tm('circle')}</span><div class="txt">${esc(c.description)}</div></div>`:''}
       ${c.rhythm?`<div class="def"><span class="eyebrow">Meeting rhythm</span><div>${esc(c.rhythm)}</div></div>`:''}
     </section>
     <section class="panel"><div class="ph"><h2>Members</h2><span class="muted">${(c.members||[]).length}</span></div>
       ${(c.members||[]).length?`<div class="people">${c.members.map(person).join('')}</div>`:'<p class="muted">No members listed.</p>'}
-      ${kids.length?`<div class="def"><span class="eyebrow">Sub-circles</span><div class="row">${kids.map(k=>`<a class="chip t-${k.type||'department'}" href="#circle-${k.id}" style="text-decoration:none">${esc(k.name)}</a>`).join('')}</div></div>`:''}
-      ${(() => { const wp = vals('wiki').filter(w => w.circleId === c.id && !(w.courseId && S.courses[w.courseId])); const cs = vals('courses').filter(k => k.circleId === c.id); return (wp.length || cs.length) ? `<div class="def"><span class="eyebrow">Wiki courses and pages this circle looks after</span><div class="row">${cs.map(k => `<a class="chip" href="#course-${k.id}" style="text-decoration:none">Course: ${esc(k.title)}</a>`).join('')}${wp.map(w => `<a class="chip" href="#wiki-${w.id}" style="text-decoration:none">${esc(w.title)}</a>`).join('')}</div></div>` : ''; })()}
-      ${c.parentId && S.circles[c.parentId] ? `<p class="muted" style="font-size:13.5px">Linked to <a href="#circle-${c.parentId}">${esc(S.circles[c.parentId].name)}</a> through its leader and delegate.</p>`:''}
+      ${kids.length?`<div class="def"><span class="eyebrow">Sub-${tm('circles')}</span><div class="row">${kids.map(k=>`<a class="chip t-${k.type||'department'}" href="#circle-${k.id}" style="text-decoration:none">${esc(k.name)}</a>`).join('')}</div></div>`:''}
+      ${(() => { const wp = vals('wiki').filter(w => w.circleId === c.id && !(w.courseId && S.courses[w.courseId])); const cs = vals('courses').filter(k => k.circleId === c.id); return (wp.length || cs.length) ? `<div class="def"><span class="eyebrow">Wiki courses and pages this ${tm('circle')} looks after</span><div class="row">${cs.map(k => `<a class="chip" href="#course-${k.id}" style="text-decoration:none">Course: ${esc(k.title)}</a>`).join('')}${wp.map(w => `<a class="chip" href="#wiki-${w.id}" style="text-decoration:none">${esc(w.title)}</a>`).join('')}</div></div>` : ''; })()}
+      ${c.parentId && S.circles[c.parentId] ? `<p class="muted" style="font-size:13.5px">Linked to <a href="#circle-${c.parentId}">${esc(S.circles[c.parentId].name)}</a> through its ${tm('leader')} and ${tm('delegate')}.</p>`:''}
     </section>
   </div>
   <section class="panel"><div class="ph"><h2>Roles</h2><div class="row"><button class="btn sm w" data-act="newSelection" data-circle="${c.id}" data-role="new" type="button">Select someone for a new role</button><button class="btn sm w" data-act="editCircle" data-id="${c.id}" type="button">Edit roles directly</button></div></div>
-    <p class="muted" style="font-size:13.5px">Use <b>Start selection</b> to run the selection process. When the circle consents, the role holder, term and description update here and a role change is posted to the community board.</p>
+    <p class="muted" style="font-size:13.5px">Use <b>Start selection</b> to run the selection process. When the ${tm('circle')} consents, the role holder, term and description update here and a role change is posted to the community board.</p>
     <div class="tscroll"><table><thead><tr><th>Role</th><th>Held by</th><th>Selected</th><th>Term ends</th><th>Status</th><th></th></tr></thead><tbody>${roleRows}${extra}</tbody></table></div>
-    ${!c.parentId?'<p class="muted" style="font-size:13px">This circle sits at the top of the structure, so it has no leader or delegate link upward.</p>':''}
+    ${!c.parentId?`<p class="muted" style="font-size:13px">This ${tm('circle')} sits at the top of the structure, so it has no ${tm('leader')} or ${tm('delegate')} link upward.</p>`:''}
   </section>`;
 }
 function cMeetings(c, meets){
   const backlog = c.backlog || [];
   return `<div class="cols" style="grid-template-columns:minmax(0,2fr) minmax(260px,1fr)">
     <section class="panel"><div class="ph"><h2>Meetings</h2><button class="btn sm pri w" data-act="newMeeting" data-circle="${c.id}" type="button">Record a meeting</button></div>
-      ${meets.length?`<div class="list">${meets.map(m=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(m.date)}</span><div class="body"><a class="ttl" href="#meeting-${m.id}">${esc((m.agenda||[]).map(a=>a.title).filter(Boolean).slice(0,3).join(' · ') || 'Circle meeting')}</a>${m.takeaways?`<div class="clamp muted">${esc(m.takeaways)}</div>`:''}</div><div class="side">${m.status==='published'?stChip('Minutes final','ok'):stChip('Draft','mute')}</div></div>`).join('')}</div>`:emptyBox('No meetings recorded yet. Minutes follow the meeting format: opening round, administrative items, consent to the agenda, agenda items and a closing round.')}
+      ${meets.length?`<div class="list">${meets.map(m=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(m.date)}</span><div class="body"><a class="ttl" href="#meeting-${m.id}">${esc((m.agenda||[]).map(a=>a.title).filter(Boolean).slice(0,3).join(' · ') || `${tm('Circle')} meeting`)}</a>${m.takeaways?`<div class="clamp muted">${esc(m.takeaways)}</div>`:''}</div><div class="side">${m.status==='published'?stChip('Minutes final','ok'):stChip('Draft','mute')}</div></div>`).join('')}</div>`:emptyBox('No meetings recorded yet. Minutes follow the meeting format: opening round, administrative items, consent to the agenda, agenda items and a closing round.')}
     </section>
-    <section class="panel"><div class="ph"><h2>Backlog</h2></div><p class="muted" style="font-size:13.5px">Topics waiting for a future agenda. The leader, facilitator and secretary draw on this when preparing meetings.</p>
+    <section class="panel"><div class="ph"><h2>Backlog</h2></div><p class="muted" style="font-size:13.5px">Topics waiting for a future agenda. The ${tm('leader')}, ${tm('facilitator')} and ${tm('secretary')} draw on this when preparing meetings.</p>
       ${backlog.length?`<div class="list">${backlog.map((b,i)=>`<div class="item"><div class="body">${backlogHTML(b)}</div><button class="btn sm ghost w" data-act="backlogRemove" data-circle="${c.id}" data-i="${i}" type="button" aria-label="Remove">Remove</button></div>`).join('')}</div>`:'<p class="muted">Nothing in the backlog.</p>'}
       <form class="row w" data-form="backlog" data-circle="${c.id}"><input id="bl-${c.id}" placeholder="Add a topic" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px"><button class="btn sm" type="submit">Add</button></form>
     </section></div>`;
@@ -925,20 +968,20 @@ function propItem(p){ return `<div class="item"><div class="body"><a class="ttl"
 function cLogbook(c, consented, meets){
   const decisions = [];
   meets.forEach(m => (m.agenda||[]).forEach(a => { if((a.type==='decide'||a.type==='select'||a.type==='review') && a.outcome && !a.proposalId) decisions.push({m, a}); }));
-  return `<section class="panel"><div class="ph"><h2>Policies in force</h2></div><p class="muted" style="font-size:13.5px">Consented proposals become this circle's policies. Each one has a review date so the circle can check that it still serves the aim.</p>
+  return `<section class="panel"><div class="ph"><h2>Policies in force</h2></div><p class="muted" style="font-size:13.5px">Consented proposals become this ${tm('circle')}'s policies. Each one has a review date so the ${tm('circle')} can check that it still serves the aim.</p>
     ${consented.length?`<div class="tscroll"><table><thead><tr><th>Policy</th><th>Consented</th><th>Review by</th><th></th></tr></thead><tbody>${consented.sort(byDateDesc('decided')).map(p=>{ const d=daysUntil(p.reviewDate); return `<tr><td><a href="#proposal-${p.id}"><b>${esc(p.title)}</b></a>${p.proposal?`<div class="muted clamp" style="font-size:13px">${esc(p.proposal)}</div>`:''}</td><td class="mono">${mdy(p.decided)||'—'}</td><td class="mono">${mdy(p.reviewDate)||'—'}</td><td>${d!==null&&d<0?stChip('Review due','warn'):''}</td></tr>`; }).join('')}</tbody></table></div>`:'<p class="muted">No consented policies yet.</p>'}
   </section>
   <section class="panel"><div class="ph"><h2>Other decisions from meetings</h2></div>
     ${decisions.length?`<div class="list">${decisions.map(({m,a})=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(m.date)}</span><div class="body"><b>${esc(a.title)}</b><span class="muted" style="font-size:12.5px">${AG_TYPES[a.type]}</span><div class="def"><div class="txt">${esc(a.outcome)}</div></div></div><a class="btn sm" href="#meeting-${m.id}">Minutes</a></div>`).join('')}</div>`:'<p class="muted">Decisions, role selections and policy reviews recorded in minutes appear here.</p>'}
   </section>
-  ${(() => { const nc = vals('proposals').filter(p=>p.circleId===c.id && p.stage==='notconsented').sort(byDateDesc('droppedOn')); return nc.length ? `<section class="panel"><div class="ph"><h2>Proposals not consented</h2></div><p class="muted" style="font-size:13.5px">Kept so the circle remembers why an idea did not pass.</p><div class="list">${nc.map(p=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(p.droppedOn)||'—'}</span><div class="body"><a class="ttl" href="#proposal-${p.id}">${esc(p.title)}</a>${p.dropReason?`<div class="muted clamp">${esc(p.dropReason)}</div>`:''}</div><div class="side">${p.followUpId&&S.proposals[p.followUpId]?`<a href="#proposal-${p.followUpId}" style="font-size:13px">New approach</a>`:''}</div></div>`).join('')}</div></section>` : ''; })()}
+  ${(() => { const nc = vals('proposals').filter(p=>p.circleId===c.id && p.stage==='notconsented').sort(byDateDesc('droppedOn')); return nc.length ? `<section class="panel"><div class="ph"><h2>Proposals not consented</h2></div><p class="muted" style="font-size:13.5px">Kept so the ${tm('circle')} remembers why an idea did not pass.</p><div class="list">${nc.map(p=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(p.droppedOn)||'—'}</span><div class="body"><a class="ttl" href="#proposal-${p.id}">${esc(p.title)}</a>${p.dropReason?`<div class="muted clamp">${esc(p.dropReason)}</div>`:''}</div><div class="side">${p.followUpId&&S.proposals[p.followUpId]?`<a href="#proposal-${p.followUpId}" style="font-size:13px">New approach</a>`:''}</div></div>`).join('')}</div></section>` : ''; })()}
   ${(() => { const sels = vals('selections').filter(s=>s.circleId===c.id).sort(byDateDesc('date')); return `<section class="panel"><div class="ph"><h2>Role selections</h2></div>${sels.length?`<div class="list">${sels.map(s=>`<div class="item"><span class="mono" style="flex:none;min-width:84px">${mdy(s.date)}</span><div class="body"><a class="ttl" href="#selection-${s.id}">${esc(s.roleTitle)}${s.status==='complete'&&s.proposed?` · ${esc(s.proposed)}`:''}</a>${s.proposalReason?`<div class="muted clamp">${esc(s.proposalReason)}</div>`:''}</div><div class="side">${s.status==='complete'?stChip('Selected by consent','ok'):s.status==='cancelled'?stChip('Cancelled','mute'):stChip('In progress','warn')}</div></div>`).join('')}</div>`:'<p class="muted">Each selection keeps its nominations and reasons here, so anyone can see why a person holds a role.</p>'}</section>`; })()}`;
 }
 
 /* ---------- Meeting view ---------- */
 function vMeeting(id){
   const m = S.meetings[id];
-  if(!m) return mode==='loading'?'':emptyBox('This meeting record does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to circles</a>`);
+  if(!m) return mode==='loading'?'':emptyBox('This meeting record does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to ${tm('circles')}</a>`);
   const c = S.circles[m.circleId];
   const acts = vals('actions').filter(a=>a.meetingId===id);
   const steps = [
@@ -947,14 +990,14 @@ function vMeeting(id){
       <div class="def"><span class="eyebrow">Housekeeping</span><div>${m.prevMinutes?'Minutes of the last meeting consented.':'Minutes of the last meeting not reviewed.'}</div>${m.nextDate?`<div>Next meeting: <span class="mono">${mdy(m.nextDate)}</span></div>`:''}</div></div>
       ${m.announcements?`<div class="def"><span class="eyebrow">Announcements</span><div class="txt" style="white-space:pre-wrap">${esc(m.announcements)}</div></div>`:''}`],
     ['Consent to the agenda', m.agendaConsented ? 'The agenda was consented.' : '<span class="muted">Not recorded.</span>'],
-    ['Agenda items', (m.agenda||[]).length ? m.agenda.map((a,i)=>`<div class="ag ${a.type}"><div class="row"><b>${esc(a.title||'Untitled item')}</b><span class="kind">${AG_TYPES[a.type]||'Item'}</span>${a.proposalId&&S.proposals[a.proposalId]?`<a href="#proposal-${a.proposalId}" style="font-size:13px">Proposal</a>`:''}</div>${a.notes?`<div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(a.notes)}</div>`:''}${a.outcome?`<div><span class="eyebrow">Outcome</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(a.outcome)}</div></div>`:''}${a.takeaway?`<div class="muted" style="font-size:13.5px">Key point: ${esc(a.takeaway)}</div>`:''}<div class="row">${sentHTML(a.sentTo)}${linkTargets(m.circleId).length?`<button class="btn sm w" data-act="sendTo" data-kind="agenda" data-id="${m.id}" data-i="${i}" type="button">Send to another circle</button>`:''}</div></div>`).join('') : '<span class="muted">No agenda items recorded.</span>'],
+    ['Agenda items', (m.agenda||[]).length ? m.agenda.map((a,i)=>`<div class="ag ${a.type}"><div class="row"><b>${esc(a.title||'Untitled item')}</b><span class="kind">${AG_TYPES[a.type]||'Item'}</span>${a.proposalId&&S.proposals[a.proposalId]?`<a href="#proposal-${a.proposalId}" style="font-size:13px">Proposal</a>`:''}</div>${a.notes?`<div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(a.notes)}</div>`:''}${a.outcome?`<div><span class="eyebrow">Outcome</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(a.outcome)}</div></div>`:''}${a.takeaway?`<div class="muted" style="font-size:13.5px">Key point: ${esc(a.takeaway)}</div>`:''}<div class="row">${sentHTML(a.sentTo)}${linkTargets(m.circleId).length?`<button class="btn sm w" data-act="sendTo" data-kind="agenda" data-id="${m.id}" data-i="${i}" type="button">Send to another ${tm('circle')}</button>`:''}</div></div>`).join('') : '<span class="muted">No agenda items recorded.</span>'],
     ['Closing round', m.closing ? `<div style="white-space:pre-wrap">${esc(m.closing)}</div>` : '<span class="muted">Not recorded.</span>']
   ];
   return `
-  <div class="head"><div class="t"><span class="eyebrow">Meeting minutes · ${c?`<a href="#circle-${c.id}-meetings">${esc(c.name)}</a>`:'Deleted circle'}</span><h1><span class="mono" style="font-size:inherit;font-family:inherit">${mdy(m.date)}</span></h1>
-    <div class="row">${m.status==='published'?stChip('Minutes final','ok'):stChip('Draft','mute')}${m.facilitator?`<span class="muted" style="font-size:13.5px">Facilitator: ${esc(m.facilitator)}</span>`:''}${m.secretary?`<span class="muted" style="font-size:13.5px">Secretary: ${esc(m.secretary)}</span>`:''}</div></div>
+  <div class="head"><div class="t"><span class="eyebrow">Meeting minutes · ${c?`<a href="#circle-${c.id}-meetings">${esc(c.name)}</a>`:`Deleted ${tm('circle')}`}</span><h1><span class="mono" style="font-size:inherit;font-family:inherit">${mdy(m.date)}</span></h1>
+    <div class="row">${m.status==='published'?stChip('Minutes final','ok'):stChip('Draft','mute')}${m.facilitator?`<span class="muted" style="font-size:13.5px">${tm('Facilitator')}: ${esc(m.facilitator)}</span>`:''}${m.secretary?`<span class="muted" style="font-size:13.5px">${tm('Secretary')}: ${esc(m.secretary)}</span>`:''}</div></div>
     <div class="row"><button class="btn w" data-act="editMeeting" data-id="${m.id}" type="button">Edit minutes</button></div></div>
-  <div class="takeaway"><b>Key takeaways for everyone</b>${m.takeaways?esc(m.takeaways):'<span class="muted">Not written yet. Add the few points someone outside this circle should know.</span>'}</div>
+  <div class="takeaway"><b>Key takeaways for everyone</b>${m.takeaways?esc(m.takeaways):`<span class="muted">Not written yet. Add the few points someone outside this ${tm('circle')} should know.</span>`}</div>
   <section class="panel"><div class="minutes">${steps.map((s,i)=>`<div class="step"><span class="no">${i+1}</span><div class="c"><h3>${s[0]}</h3>${s[1]}</div></div>`).join('')}</div></section>
   <section class="panel"><div class="ph"><h2>Action items from this meeting</h2></div>${acts.length?`<div class="tscroll"><table><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${acts.map(a=>`<tr><td>${esc(a.task)}</td><td>${esc(a.owner||'—')}</td><td class="mono">${mdy(a.due)||'—'}</td><td>${stChip(A_STATUS[a.status||'todo'][0],A_STATUS[a.status||'todo'][1])}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">None.</p>'}</section>`;
 }
@@ -962,7 +1005,7 @@ function vMeeting(id){
 /* ---------- Proposal view ---------- */
 function vProposal(id){
   const p = S.proposals[id];
-  if(!p) return mode==='loading'?'':emptyBox('This proposal does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to circles</a>`);
+  if(!p) return mode==='loading'?'':emptyBox('This proposal does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to ${tm('circles')}</a>`);
   const c = S.circles[p.circleId];
   const order = ['understand','explore','shape','questions','reactions','consent'];
   const labels = ['Understand the need','Explore dimensions','Shape the proposal','Clarifying questions','Quick reactions','Consent round'];
@@ -971,9 +1014,9 @@ function vProposal(id){
   const objs = p.objections || [];
   const sec = (t, v, hint) => `<div class="def"><span class="eyebrow">${t}</span>${v?`<div class="txt">${esc(v)}</div>`:`<div class="muted">${hint}</div>`}</div>`;
   return `
-  <div class="head"><div class="t"><span class="eyebrow">Proposal · ${c?`<a href="#circle-${c.id}-proposals">${esc(c.name)}</a>`:'Deleted circle'}</span><h1>${esc(p.title)}</h1>
+  <div class="head"><div class="t"><span class="eyebrow">Proposal · ${c?`<a href="#circle-${c.id}-proposals">${esc(c.name)}</a>`:`Deleted ${tm('circle')}`}</span><h1>${esc(p.title)}</h1>
     <div class="row">${stChip(STAGES[p.stage]?.label||p.stage, STAGES[p.stage]?.cls||'mute')}${p.author?`<span class="muted" style="font-size:13.5px">Brought by ${esc(p.author)}</span>`:''}${p.decided?`<span class="muted" style="font-size:13.5px">Consented <span class="mono">${mdy(p.decided)}</span></span>`:''}${p.reviewDate?`<span class="muted" style="font-size:13.5px">Review by <span class="mono">${mdy(p.reviewDate)}</span></span>`:''}</div></div>
-    <div class="row">${p.stage==='consented' ? (() => { const wp = vals('wiki').find(w => w.proposalId === p.id); return wp ? `<a class="btn" href="#wiki-${wp.id}">Read in the wiki</a>` : `<button class="btn w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add to wiki</button>`; })() : ''}${reached>=2 && linkTargets(p.circleId).length?`<button class="btn w" data-act="sendTo" data-kind="proposal" data-id="${p.id}" type="button">Send to another circle</button>`:''}<button class="btn ghost sm w" data-act="editProposal" data-id="${p.id}" type="button" title="Correct mistakes in any field">Edit proposal</button></div></div>
+    <div class="row">${p.stage==='consented' ? (() => { const wp = vals('wiki').find(w => w.proposalId === p.id); return wp ? `<a class="btn" href="#wiki-${wp.id}">Read in the wiki</a>` : `<button class="btn w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add to wiki</button>`; })() : ''}${reached>=2 && linkTargets(p.circleId).length?`<button class="btn w" data-act="sendTo" data-kind="proposal" data-id="${p.id}" type="button">Send to another ${tm('circle')}</button>`:''}<button class="btn ghost sm w" data-act="editProposal" data-id="${p.id}" type="button" title="Correct mistakes in any field">Edit proposal</button></div></div>
   ${(p.sentTo||[]).length?`<div class="row">${sentHTML(p.sentTo)}</div>`:''}
   <div class="track" aria-label="Process progress">${labels.map((l,i)=>{ const cls = i<reached?'done':i===reached&&!['withdrawn','consented','notconsented'].includes(p.stage)?'now':''; const live = canWrite && i<reached && i<5 && !['consented','notconsented','withdrawn'].includes(p.stage); return `<div class="${cls}">${live?`<a href="#" data-act="stepDo" data-id="${p.id}" data-i="${i}" title="Revise this step">${l}</a>`:l}</div>`; }).join('')}</div>
   ${stepPanel(p, reached)}
@@ -981,7 +1024,7 @@ function vProposal(id){
     <div class="grid3"><div class="def"><span class="eyebrow">Review by</span><div class="mono">${mdy(p.reviewDate)||'—'}</div></div><div class="def"><span class="eyebrow">Decided in</span><div>${p.meetingId&&S.meetings[p.meetingId]?`<a href="#meeting-${p.meetingId}">Meeting on ${mdy(S.meetings[p.meetingId].date)}</a>`:'Not in a recorded meeting'}</div></div><div class="def"><span class="eyebrow">Affects</span><div>${(p.affects||[]).includes('everyone')?'Everyone':(p.affects||[]).filter(x=>S.circles[x]).map(x=>`<a href="#circle-${x}">${esc(S.circles[x].name)}</a>`).join(', ')||'—'}</div></div></div></section>` : ''}
   ${p.basedOn && S.proposals[p.basedOn] ? `<p class="muted" style="font-size:14px">A new approach to the same need as <a href="#proposal-${p.basedOn}">${esc(S.proposals[p.basedOn].title)}</a>, which was not consented.</p>` : ''}
   ${p.stage==='notconsented' ? (() => { const open = (p.objections||[]).filter(o=>!o.resolved); const fu = p.followUpId && S.proposals[p.followUpId]; return `<section class="panel" style="border-color:var(--bad)"><div class="ph"><h2>Not consented${p.droppedOn?` · <span class="mono" style="font-size:15px">${mdy(p.droppedOn)}</span>`:''}</h2><div class="row"><button class="btn sm w" data-act="decide" data-id="${p.id}" data-v="notconsented" type="button">Edit decision</button><button class="btn sm ghost w" data-act="undoDecision" data-id="${p.id}" type="button">Clear decision</button></div></div>
-    <p>The circle could not integrate ${open.length===1?'an objection':open.length?'the objections':'the objections raised'}, so this proposal did not pass. The current way stays in place until a new proposal is consented.</p>
+    <p>The ${tm('circle')} could not integrate ${open.length===1?'an objection':open.length?'the objections':'the objections raised'}, so this proposal did not pass. The current way stays in place until a new proposal is consented.</p>
     ${p.dropReason?`<div class="def"><span class="eyebrow">Why it was not consented</span><div class="txt">${esc(p.dropReason)}</div></div>`:''}
     ${open.length?`<div class="def"><span class="eyebrow">Objections that could not be integrated</span><ul style="margin:0;padding-left:20px">${open.map(o=>`<li>${esc(o.concern)}${o.by?` <span class="muted">(${esc(o.by)})</span>`:''}</li>`).join('')}</ul></div>`:''}
     <div class="row">${fu?`<a class="btn" href="#proposal-${fu.id}">See the new proposal: ${esc(fu.title)}</a>`:`<button class="btn pri w" data-act="followUp" data-id="${p.id}" type="button">Start a new proposal for the same need</button>`}</div>
@@ -1039,14 +1082,14 @@ function circleForm(c){
   const others = vals('circles').filter(x => x.id!==c.id && !isDescendant(x.id, c.id)).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const roleBlock = ([k,l,desc]) => { const r=c.roles?.[k]||{}; return `<div class="reprow"><div><b>${l}</b><div class="muted" style="font-size:12.5px">${desc}</div></div><div class="grid3">${fText('r-'+k,'Held by',r.holder,{list:1})}${fDate('rs-'+k,'Selected on',r.selected)}${fDate('rt-'+k,'Term ends',r.termEnd)}</div></div>`; };
   return `
-  <div class="grid2">${fText('f-name','Circle name',c.name,{ph:'e.g. Membership Circle'})}${(() => { const taken = k => vals('circles').find(x => x.type===k && x.id!==c.id); return `<label class="f"><span>Type</span><select id="f-type">${Object.entries(CTYPES).map(([k,l]) => { const t = (k==='general'||k==='mission') && taken(k); return `<option value="${k}" ${k===(c.type||'department')?'selected':''} ${t?'disabled':''}>${esc(l)}${t?` (already ${esc(t.name)})`:''}</option>`; }).join('')}</select><small>One general circle and at most one mission circle per organization.</small></label>`; })()}</div>
-  <label class="f"><span>Parent circle</span><select id="f-parent"><option value="">None (top of the structure)</option>${others.map(o=>`<option value="${o.id}" ${o.id===c.parentId?'selected':''}>${esc(o.name)}</option>`).join('')}</select><small>The circle this one is double-linked to.</small></label>
-  ${fArea('f-aim','Aim',c.aim,{ph:'What this circle does or produces',hint:'One or two sentences.'})}
-  ${fArea('f-domain','Domain',c.domain,{ph:'What this circle decides on its own',rows:3})}
-  ${fArea('f-desc','More about this circle',c.description,{ph:'Background, how to reach the circle, links',rows:2})}
+  <div class="grid2">${fText('f-name',`${tm('Circle')} name`,c.name,{ph:`e.g. Membership ${tm('Circle')}`})}${(() => { const taken = k => vals('circles').find(x => x.type===k && x.id!==c.id); return `<label class="f"><span>Type</span><select id="f-type">${Object.entries(CTYPES).map(([k,l]) => { const t = (k==='general'||k==='mission') && taken(k); return `<option value="${k}" ${k===(c.type||'department')?'selected':''} ${t?'disabled':''}>${esc(l)}${t?` (already ${esc(t.name)})`:''}</option>`; }).join('')}</select><small>One general ${tm('circle')} and at most one mission ${tm('circle')} per organization.</small></label>`; })()}</div>
+  <label class="f"><span>Parent ${tm('circle')}</span><select id="f-parent"><option value="">None (top of the structure)</option>${others.map(o=>`<option value="${o.id}" ${o.id===c.parentId?'selected':''}>${esc(o.name)}</option>`).join('')}</select><small>The ${tm('circle')} this one is double-linked to.</small></label>
+  ${fArea('f-aim','Aim',c.aim,{ph:`What this ${tm('circle')} does or produces`,hint:'One or two sentences.'})}
+  ${fArea('f-domain','Domain',c.domain,{ph:`What this ${tm('circle')} decides on its own`,rows:3})}
+  ${fArea('f-desc',`More about this ${tm('circle')}`,c.description,{ph:`Background, how to reach the ${tm('circle')}, links`,rows:2})}
   ${fText('f-rhythm','Meeting rhythm',c.rhythm,{ph:'e.g. Every other Tuesday, 18:00'})}
   ${memberPicker(c.members)}
-  <fieldset class="fs"><legend>Roles</legend><p class="hint">Leader and delegate apply when the circle has a parent circle.</p>${ROLE_KEYS.map(roleBlock).join('')}
+  <fieldset class="fs"><legend>Roles</legend><p class="hint">${tm('Leader')} and ${tm('delegate')} apply when the ${tm('circle')} has a parent ${tm('circle')}.</p>${ROLE_KEYS.map(roleBlock).join('')}
     <div class="rep" id="xroles">${(c.extraRoles||[]).map(xRoleRow).join('')}</div>
     <div><button class="btn sm" data-act="addXRole" type="button">Add another role</button></div>
   </fieldset>`;
@@ -1054,23 +1097,23 @@ function circleForm(c){
 function xRoleRow(r={}){ const k=uid('x'); return `<div class="reprow xrole"><div class="rh"><b>Other role</b><button class="btn sm ghost" data-act="removeRow" type="button">Remove</button></div><div class="grid2">${fText('xt-'+k,'Role title',r.title,{ph:'e.g. Treasurer'})}${fText('xh-'+k,'Held by',r.holder,{list:1})}</div><div class="grid2">${fDate('xs-'+k,'Selected on',r.selected)}${fDate('xe-'+k,'Term ends',r.termEnd)}</div>${fText('xd-'+k,'Responsibilities',r.description)}</div>`; }
 function editCircle(id, parentId){
   const c = id ? clone(S.circles[id]) : {id:uid('c'), type: parentId ? 'department' : (vals('circles').length ? 'department' : 'general'), parentId: parentId||'', roles:{}, members:[], backlog:[]};
-  openModal(id ? 'Edit circle' : 'New circle', circleForm(c), async () => {
-    const name = gv('f-name'); if(!name){ toast('Give the circle a name.'); $('#f-name').focus(); return false; }
+  openModal(id ? `Edit ${tm('circle')}` : `New ${tm('circle')}`, circleForm(c), async () => {
+    const name = gv('f-name'); if(!name){ toast(`Give the ${tm('circle')} a name.`); $('#f-name').focus(); return false; }
     const ty = gv('f-type'), pa = gv('f-parent');
     if(ty==='general' || ty==='mission'){ const other = vals('circles').find(x => x.type===ty && x.id!==c.id); if(other){ toast(`${other.name} is already the ${CTYPES[ty].toLowerCase()}. An organization has only one.`); return false; } }
-    if(ty==='mission' && pa){ toast('The mission circle sits at the top, so it has no parent circle.'); return false; }
-    if(ty==='general' && pa && S.circles[pa]?.type!=='mission'){ toast('The general circle can only sit under the mission circle.'); return false; }
+    if(ty==='mission' && pa){ toast(`The mission ${tm('circle')} sits at the top, so it has no parent ${tm('circle')}.`); return false; }
+    if(ty==='general' && pa && S.circles[pa]?.type!=='mission'){ toast(`The general ${tm('circle')} can only sit under the mission ${tm('circle')}.`); return false; }
     const roles = {};
     ROLE_KEYS.forEach(([k]) => { roles[k] = {holder:gv('r-'+k), selected:gd('rs-'+k), termEnd:gd('rt-'+k)}; });
     const extraRoles = [...document.querySelectorAll('#xroles .xrole')].map(row => { const k=row.querySelector('input').id.slice(3); return {title:gv('xt-'+k), holder:gv('xh-'+k), selected:gd('xs-'+k), termEnd:gd('xe-'+k), description:gv('xd-'+k)}; }).filter(r=>r.title);
     const obj = {...c, name, type:gv('f-type'), parentId:gv('f-parent'), aim:gv('f-aim'), domain:gv('f-domain'), description:gv('f-desc'), rhythm:gv('f-rhythm'), members:pickedMembers(), roles, extraRoles, updated:todayISO()};
     obj.example = c.example || false;
-    const ok = await put('circles', obj); if(ok){ toast(id?'Circle saved':'Circle created'); if(!id) location.hash = 'circle-'+obj.id; }
+    const ok = await put('circles', obj); if(ok){ toast(id?`${tm('Circle')} saved`:`${tm('Circle')} created`); if(!id) location.hash = 'circle-'+obj.id; }
     return ok;
-  }, {wide:true, saveLabel: id?'Save circle':'Create circle', onDelete: id ? async () => {
-    if(childrenOf(id).length){ toast('Move or delete its sub-circles first.'); return false; }
-    await remove('circles', id); location.hash = 'circles'; toast('Circle deleted'); return true;
-  } : null, deleteLabel:'Delete circle'});
+  }, {wide:true, saveLabel: id?`Save ${tm('circle')}`:`Create ${tm('circle')}`, onDelete: id ? async () => {
+    if(childrenOf(id).length){ toast(`Move or delete its sub-${tm('circles')} first.`); return false; }
+    await remove('circles', id); location.hash = 'circles'; toast(`${tm('Circle')} deleted`); return true;
+  } : null, deleteLabel:`Delete ${tm('circle')}`});
 }
 
 /* ---------- Meeting form ---------- */
@@ -1082,7 +1125,7 @@ function agendaRow(a={}){
     <div class="grid2">${fText('at-'+k,'Topic',a.title)}${fSel('ay-'+k,'Type',AG_TYPES,a.type||'report')}</div>
     ${fArea('an-'+k,'Discussion notes',a.notes,{rows:3})}
     ${fArea('ao-'+k,'Outcome or decision',a.outcome,{rows:2,ph:'What was decided, who was selected, or next step'})}
-    ${fText('ak-'+k,'Key point for the community',a.takeaway,{ph:'One sentence someone outside the circle should know'})}
+    ${fText('ak-'+k,'Key point for the community',a.takeaway,{ph:`One sentence someone outside the ${tm('circle')} should know`})}
     <div class="grid2"><label class="f"><span>Linked proposal</span><select id="ap-${k}"><option value="">None</option>${props.map(p=>`<option value="${p.id}" ${p.id===a.proposalId?'selected':''}>${esc(p.title)}</option>`).join('')}</select></label>
     <div class="f"><span>Community board</span>${a.noticeId?'<span class="muted" style="font-size:13.5px">Already posted to the community board.</span>':fChk('as-'+k,'Post this outcome to the community board',a.share)}</div></div>
   </div>`;
@@ -1097,20 +1140,20 @@ function editMeeting(id, circleId){
   const members = c.members || [];
   const guests = (m.present||[]).filter(p=>!members.includes(p));
   const body = `
-  <div class="grid3">${fDate('m-date','Meeting date',m.date)}${fText('m-fac','Facilitator',m.facilitator ?? c.roles?.facilitator?.holder,{list:1})}${fText('m-sec','Secretary',m.secretary ?? c.roles?.secretary?.holder,{list:1})}</div>
-  <fieldset class="fs"><legend>1 · Opening round</legend><p class="hint">Each person checks in. Note anything the circle should keep in mind.</p>${fArea('m-open','Notes',m.opening,{rows:2})}</fieldset>
+  <div class="grid3">${fDate('m-date','Meeting date',m.date)}${fText('m-fac',`${tm('Facilitator')}`,m.facilitator ?? c.roles?.facilitator?.holder,{list:1})}${fText('m-sec',`${tm('Secretary')}`,m.secretary ?? c.roles?.secretary?.holder,{list:1})}</div>
+  <fieldset class="fs"><legend>1 · Opening round</legend><p class="hint">Each person checks in. Note anything the ${tm('circle')} should keep in mind.</p>${fArea('m-open','Notes',m.opening,{rows:2})}</fieldset>
   <fieldset class="fs"><legend>2 · Administrative items</legend>
-    <div class="f"><span>Present</span><div class="chks">${members.length?members.map((p,i)=>`<label class="chk"><input type="checkbox" class="m-pres" value="${esc(p)}" ${(id?(m.present||[]).includes(p):true)?'checked':''}> ${esc(p)}</label>`).join(''):'<span class="muted">Add members to the circle to tick attendance.</span>'}</div></div>
+    <div class="f"><span>Present</span><div class="chks">${members.length?members.map((p,i)=>`<label class="chk"><input type="checkbox" class="m-pres" value="${esc(p)}" ${(id?(m.present||[]).includes(p):true)?'checked':''}> ${esc(p)}</label>`).join(''):`<span class="muted">Add members to the ${tm('circle')} to tick attendance.</span>`}</div></div>
     ${fText('m-guests','Guests',guests.join(', '),{ph:'Names separated by commas'})}
     <div class="grid2">${fChk('m-prev','Minutes of the last meeting consented',m.prevMinutes)}${fDate('m-next','Next meeting',m.nextDate)}</div>
     ${fArea('m-ann','Announcements',m.announcements,{rows:2})}
   </fieldset>
-  <fieldset class="fs"><legend>3 · Consent to the agenda</legend>${fChk('m-agc','The circle consented to the agenda',m.agendaConsented ?? true)}</fieldset>
+  <fieldset class="fs"><legend>3 · Consent to the agenda</legend>${fChk('m-agc',`The ${tm('circle')} consented to the agenda`,m.agendaConsented ?? true)}</fieldset>
   <fieldset class="fs"><legend>4 · Agenda items</legend><div class="rep" id="agrows">${(m.agenda||[]).map(agendaRow).join('')}</div><div><button class="btn sm" data-act="addAgenda" type="button">Add agenda item</button></div>
     ${(c.backlog||[]).length?`<div class="f"><span>Add from the backlog</span><div class="blchips">${c.backlog.map((b,i)=>`<button type="button" data-act="useBacklog" data-i="${i}">+ ${esc(bText(b))}</button>`).join('')}</div><small>Items you add here leave the backlog when you save.</small></div>`:''}</fieldset>
   <fieldset class="fs"><legend>5 · Closing round</legend><p class="hint">Meeting evaluation: what went well, what can improve.</p>${fArea('m-close','Notes',m.closing,{rows:2})}</fieldset>
   <fieldset class="fs"><legend>Action items</legend>${linked.length?`<p class="hint">Already linked: ${linked.map(a=>esc(a.task)).join(' · ')}. Manage them in the Work tab.</p>`:''}<div class="rep" id="narows"></div><div><button class="btn sm" data-act="addActionRow" type="button">Add action item</button></div></fieldset>
-  <fieldset class="fs"><legend>Key takeaways for everyone</legend><p class="hint">The few points a person outside this circle should know. These appear on the overview and the community board.</p>${fArea('m-take','Takeaways',m.takeaways,{rows:4})}
+  <fieldset class="fs"><legend>Key takeaways for everyone</legend><p class="hint">The few points a person outside this ${tm('circle')} should know. These appear on the overview and the community board.</p>${fArea('m-take','Takeaways',m.takeaways,{rows:4})}
     ${fSel('m-status','Status',{draft:'Draft (still being written)', published:'Final (minutes complete)'},m.status)}</fieldset>`;
   openModal(id ? 'Edit meeting minutes' : 'Record a meeting', body, async () => {
     const date = gd('m-date'); if(!date){ toast('Add the meeting date.'); return false; }
@@ -1155,13 +1198,13 @@ function vProposals(){
   const dt = p => p.stage==='notconsented' ? p.droppedOn : p.stage==='consented' ? p.decided : p.created;
   list.sort((a,b) => (dt(b)||'').localeCompare(dt(a)||''));
   const circs = ordered();
-  return `<div class="head"><div class="t"><span class="eyebrow">Circles</span><h1>Proposals</h1><p>Every proposal across all circles. Filter by the circle that brought it, or by who it affects.</p></div></div>
+  return `<div class="head"><div class="t"><span class="eyebrow">${tm('Circles')}</span><h1>Proposals</h1><p>Every proposal across all ${tm('circles')}. Filter by the ${tm('circle')} that brought it, or by who it affects.</p></div></div>
   <div class="ptools">
     <select id="prf-stage" class="sel" aria-label="Stage">${Object.entries(PROP_STAGE_F).map(([k,l]) => `<option value="${k}" ${k===propStage?'selected':''}>${l}</option>`).join('')}</select>
-    <select id="prf-circle" class="sel" aria-label="Brought by circle"><option value="">Brought by any circle</option>${circs.map(([c]) => `<option value="${c.id}" ${c.id===propCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    <select id="prf-circle" class="sel" aria-label="Brought by circle"><option value="">Brought by any ${tm('circle')}</option>${circs.map(([c]) => `<option value="${c.id}" ${c.id===propCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
     <select id="prf-aff" class="sel" aria-label="Affects"><option value="">Affects anyone</option><option value="everyone" ${propAffects==='everyone'?'selected':''}>Affects everyone</option>${circs.map(([c]) => `<option value="${c.id}" ${c.id===propAffects?'selected':''}>Affects ${esc(c.name)}</option>`).join('')}</select>
   </div>
-  ${list.length ? `<div class="tscroll"><table class="ptable"><thead><tr><th>Proposal</th><th>Circle</th><th>Affects</th><th>Stage</th><th>Date</th></tr></thead><tbody>${list.map(p => `<tr>
+  ${list.length ? `<div class="tscroll"><table class="ptable"><thead><tr><th>Proposal</th><th>${tm('Circle')}</th><th>Affects</th><th>Stage</th><th>Date</th></tr></thead><tbody>${list.map(p => `<tr>
     <td><a href="#proposal-${p.id}"><b>${esc(p.title)}</b></a>${p.driver?`<div class="muted clamp" style="font-size:13px">${esc(p.driver)}</div>`:''}</td>
     <td>${S.circles[p.circleId]?`<a href="#circle-${p.circleId}-proposals">${esc(circleName(p.circleId))}</a>`:'<span class="muted">—</span>'}</td>
     <td>${affectsHTML(p) || '<span class="muted">—</span>'}</td>
@@ -1170,7 +1213,7 @@ function vProposals(){
 }
 
 /* ---------- Proposal form ---------- */
-function objRow(o={}){ const k=uid('o'); return `<div class="reprow orow" data-k="${k}"><div class="rh"><b>Objection</b><button class="btn sm ghost" data-act="removeRow" type="button">Remove</button></div><div class="grid2">${fText('ob-'+k,'Raised by',o.by,{list:1})}<div class="f"><span>Status</span>${fChk('or-'+k,'Integrated',o.resolved)}</div></div>${fArea('oc-'+k,'Objection',o.concern,{rows:2,ph:'How would this proposal prevent the circle from reaching its aim?'})}${fArea('os-'+k,'How it was integrated',o.resolution,{rows:2})}</div>`; }
+function objRow(o={}){ const k=uid('o'); return `<div class="reprow orow" data-k="${k}"><div class="rh"><b>Objection</b><button class="btn sm ghost" data-act="removeRow" type="button">Remove</button></div><div class="grid2">${fText('ob-'+k,'Raised by',o.by,{list:1})}<div class="f"><span>Status</span>${fChk('or-'+k,'Integrated',o.resolved)}</div></div>${fArea('oc-'+k,'Objection',o.concern,{rows:2,ph:`How would this proposal prevent the ${tm('circle')} from reaching its aim?`})}${fArea('os-'+k,'How it was integrated',o.resolution,{rows:2})}</div>`; }
 function editProposal(id, circleId){
   if(!id) return newProposalForm(circleId);
   const p = id ? clone(S.proposals[id]) : {id:uid('p'), circleId, stage:'forming', created:todayISO(), objections:[]};
@@ -1179,12 +1222,12 @@ function editProposal(id, circleId){
   const preStages = {forming:'Forming', ready:'Ready for consent', objection:'Integrating objections', withdrawn:'Withdrawn'};
   const preStage = preStages[p.stage] ? p.stage : (p.stageBefore && preStages[p.stageBefore] ? p.stageBefore : 'ready');
   const body = `
-  ${fText('p-title','Title',p.title,{ph:'e.g. Shared calendar for all circles'})}
+  ${fText('p-title','Title',p.title,{ph:`e.g. Shared calendar for all ${tm('circles')}`})}
   <div class="grid2">${fText('p-author','Brought by',p.author,{list:1})}<label class="f"><span>Stage</span><select id="p-stage" ${decided?'disabled':''}>${Object.entries(preStages).map(([k,l])=>`<option value="${k}" ${k===preStage?'selected':''}>${esc(l)}</option>`).join('')}</select><small>${decided?`Decided: ${STAGES[decided].label}. Change the decision on the proposal page.`:'Record the decision with the Consent buttons on the proposal page.'}</small></label></div>
   <fieldset class="fs"><legend>Forming the proposal</legend>
     ${fArea('p-driver','The need (driver)',p.driver,{rows:2,ph:'What is happening, and what is needed?'})}
-    ${fArea('p-und','Understand',p.understanding,{rows:2,ph:'What the circle learned from its questions'})}
-    ${fArea('p-dim','Explore dimensions: what must a good solution cover?',p.dimensions,{rows:3,ph:'e.g. Cost · who is responsible · timeline · which circles it touches · how we will know it works',hint:'List the <b>topics</b> any good proposal has to address, not the answers yet. Think of them as the questions the proposal must answer. Ideas for each one go in the next box.'})}
+    ${fArea('p-und','Understand',p.understanding,{rows:2,ph:`What the ${tm('circle')} learned from its questions`})}
+    ${fArea('p-dim','Explore dimensions: what must a good solution cover?',p.dimensions,{rows:3,ph:`e.g. Cost · who is responsible · timeline · which ${tm('circles')} it touches · how we will know it works`,hint:'List the <b>topics</b> any good proposal has to address, not the answers yet. Think of them as the questions the proposal must answer. Ideas for each one go in the next box.'})}
     ${fArea('p-ideas','Ideas',p.ideas,{rows:2,ph:'Possible answers for each dimension'})}
   </fieldset>
   ${fArea('p-text','The proposal',p.proposal,{rows:5,ph:'Who does what, by when, and how it will be evaluated'})}
@@ -1206,14 +1249,14 @@ function editProposal(id, circleId){
 
 
 /* ---------- Proposal blueprint: one clear next step at a time ---------- */
-const P_STEPS = [
-  {label:'Understand the need', btn:'Record what we learned', help:'Describe what is happening and what is needed. Then ask questions until everyone in the circle shares the same picture.'},
-  {label:'Explore dimensions', btn:'Add dimensions', help:'List the topics any good solution has to cover, such as cost, who is responsible, timeline, which circles it touches and how we will know it works. Name the topics, not the answers.', skip:'Skip this step'},
+Object.defineProperty(window, 'P_STEPS', {get(){ return [
+  {label:'Understand the need', btn:'Record what we learned', help:`Describe what is happening and what is needed. Then ask questions until everyone in the ${tm('circle')} shares the same picture.`},
+  {label:'Explore dimensions', btn:'Add dimensions', help:`List the topics any good solution has to cover, such as cost, who is responsible, timeline, which ${tm('circles')} it touches and how we will know it works. Name the topics, not the answers.`, skip:'Skip this step'},
   {label:'Shape the proposal', btn:'Write the proposal', help:'Collect ideas for each dimension. Then one or two people combine the best ideas into one proposal: who does what, by when, and how it will be evaluated.'},
-  {label:'Clarifying questions', btn:'Add clarifying questions', help:'Present the proposal to the circle. Go around once: questions only, no opinions yet.', skip:'No questions, continue'},
+  {label:'Clarifying questions', btn:'Add clarifying questions', help:`Present the proposal to the ${tm('circle')}. Go around once: questions only, no opinions yet.`, skip:'No questions, continue'},
   {label:'Quick reactions', btn:'Add quick reactions', help:'Go around once more. Everyone shares a short reaction to the proposal.', skip:'No reactions, continue'},
   {label:'Consent round', help:'Each person says consent or objection. Record any objections and integrate them by changing the proposal.'}
-];
+]; }})
 function propReached(p){
   let r = 0;
   if(p.understanding) r = 1; if(p.dimensions) r = 2; if(p.proposal) r = 3; if(p.questions) r = 4; if(p.reactions) r = 5;
@@ -1243,8 +1286,8 @@ function stepPanel(p, reached){
 function stepModal(id, i){
   const p = clone(S.proposals[id]); if(!p) return; i = +i;
   const forms = [
-    () => fArea('s-driver','The need (driver) *',p.driver,{rows:3,ph:'What is happening, and what is needed?'}) + fArea('s-und','What we learned',p.understanding,{rows:4,ph:'Answers to the questions the circle asked to understand the situation'}),
-    () => fArea('s-dim','Dimensions: what must a good solution cover? *',p.dimensions,{rows:4,ph:'e.g. Cost · who is responsible · timeline · which circles it touches · how we will know it works',hint:'Name the topics, not the answers. Ideas come in the next step.'}),
+    () => fArea('s-driver','The need (driver) *',p.driver,{rows:3,ph:'What is happening, and what is needed?'}) + fArea('s-und','What we learned',p.understanding,{rows:4,ph:`Answers to the questions the ${tm('circle')} asked to understand the situation`}),
+    () => fArea('s-dim','Dimensions: what must a good solution cover? *',p.dimensions,{rows:4,ph:`e.g. Cost · who is responsible · timeline · which ${tm('circles')} it touches · how we will know it works`,hint:'Name the topics, not the answers. Ideas come in the next step.'}),
     () => fArea('s-ideas','Ideas',p.ideas,{rows:3,ph:'Possible answers for each dimension'}) + fArea('s-text','The proposal *',p.proposal,{rows:6,ph:'Who does what, by when, and how it will be evaluated'}),
     () => fArea('s-q','Clarifying questions and answers *',p.questions,{rows:5}),
     () => fArea('s-r','Quick reactions *',p.reactions,{rows:5})
@@ -1264,7 +1307,7 @@ function stepModal(id, i){
 }
 function objModal(id){
   const p = clone(S.proposals[id]); if(!p) return;
-  openModal('Record an objection', `<p class="muted" style="font-size:14px">An objection is a reasoned argument that this proposal would keep the circle from reaching its aim. A preference is not an objection.</p>${fText('ob-by','Raised by','',{list:1})}${fArea('ob-c','Objection *','',{rows:3,ph:'How would this proposal prevent the circle from reaching its aim?'})}`, async () => {
+  openModal('Record an objection', `<p class="muted" style="font-size:14px">An objection is a reasoned argument that this proposal would keep the ${tm('circle')} from reaching its aim. A preference is not an objection.</p>${fText('ob-by','Raised by','',{list:1})}${fArea('ob-c','Objection *','',{rows:3,ph:`How would this proposal prevent the ${tm('circle')} from reaching its aim?`})}`, async () => {
     const concern = gv('ob-c'); if(!concern){ $('#ob-c').classList.add('bad'); throw new Invalid('Describe the objection.'); }
     p.objections = [...(p.objections||[]), {by:gv('ob-by'), concern, resolution:'', resolved:false}];
     p.stage = 'objection'; p.step = Math.max(p.step||0, 5);
@@ -1281,7 +1324,7 @@ function integrateModal(id, i){
   }, {wide:true, saveLabel:'Mark integrated'});
 }
 function newProposalForm(circleId){
-  openModal('New proposal', `<p class="muted" style="font-size:14px">Start with the need. The proposal page then guides the circle through each step.</p>${fText('np-title','Title *','',{ph:'e.g. Shared calendar for all circles'})}${fText('np-author','Brought by',me.name||'',{list:1})}${fArea('np-driver','The need (driver)','',{rows:3,ph:'What is happening, and what is needed?'})}`, async () => {
+  openModal('New proposal', `<p class="muted" style="font-size:14px">Start with the need. The proposal page then guides the ${tm('circle')} through each step.</p>${fText('np-title','Title *','',{ph:`e.g. Shared calendar for all ${tm('circles')}`})}${fText('np-author','Brought by',me.name||'',{list:1})}${fArea('np-driver','The need (driver)','',{rows:3,ph:'What is happening, and what is needed?'})}`, async () => {
     const title = gv('np-title'); if(!title){ $('#np-title').classList.add('bad'); throw new Invalid('Give the proposal a title.'); }
     const n = {id:uid('p'), circleId, stage:'forming', step:0, created:todayISO(), title, author:gv('np-author'), driver:gv('np-driver'), objections:[]};
     const ok = await put('proposals', n); if(ok){ location.hash = 'proposal-' + n.id; toast('Proposal started'); } return ok;
@@ -1296,13 +1339,13 @@ function recordDecision(id, v){
   const body = v === 'consented' ? `
     <p class="muted" style="font-size:14px">No objections remain, so <b>${esc(p.title)}</b> becomes a policy of ${esc(circleName(p.circleId))}.</p>
     <div class="grid3">${fDate('p-dec','Consented on',p.decided||todayISO())}${fDate('p-rev','Review by *',p.reviewDate)}<label class="f"><span>Decided in meeting *</span><select id="p-meet"><option value="">Choose…</option>${meets.map(m=>`<option value="${m.id}" ${m.id===p.meetingId?'selected':''}>${mdy(m.date)}</option>`).join('')}<option value="none" ${p.noMeeting?'selected':''}>Not in a recorded meeting</option></select></label></div>
-    <div class="f"><span>Affected circles * <small style="font-weight:400">(check all that apply)</small></span>
+    <div class="f"><span>Affected ${tm('circles')} * <small style="font-weight:400">(check all that apply)</small></span>
       <div class="affgrid" id="p-aff">${fChk('pa-everyone','<b>Everyone</b>',aff.includes('everyone'))}${ordered().map(([c]) => `<label class="chk"><input type="checkbox" class="pa-c" value="${c.id}" ${aff.includes(c.id)?'checked':''} ${aff.includes('everyone')?'disabled':''}> ${esc(c.name)}</label>`).join('')}</div></div>
     ${p.noticeId?'<p class="hint">Already announced on the community board.</p>':fChk('p-ann','Announce on the community board',true)}`
   : `
     <p class="muted" style="font-size:14px">An objection could not be integrated, so the current way stays in place.</p>
     ${fDate('p-drop','Not consented on',p.droppedOn||todayISO())}
-    ${fArea('p-why','Why it was not consented *',p.dropReason||openObj,{rows:4,ph:'The objection that could not be integrated, and what the circle learned'})}
+    ${fArea('p-why','Why it was not consented *',p.dropReason||openObj,{rows:4,ph:`The objection that could not be integrated, and what the ${tm('circle')} learned`})}
     ${p.dropNoticeId?'<p class="hint">Already posted on the community board.</p>':fChk('p-dropann','Let the community know on the community board',false)}`;
   openModal(v === 'consented' ? 'Record consent' : 'Record: not consented', body, async () => {
     const obj = {...p, stage:v};
@@ -1313,7 +1356,7 @@ function recordDecision(id, v){
       const mt = gv('p-meet'); if(!mt){ $('#p-meet').classList.add('bad'); throw new Invalid('Choose the meeting where this was decided.'); }
       obj.meetingId = mt === 'none' ? '' : mt; obj.noMeeting = mt === 'none';
       obj.affects = gc('pa-everyone') ? ['everyone'] : [...document.querySelectorAll('#p-aff .pa-c:checked')].map(x => x.value);
-      if(!obj.affects.length) throw new Invalid('Check the circles this affects, or Everyone.');
+      if(!obj.affects.length) throw new Invalid(`Check the ${tm('circles')} this affects, or Everyone.`);
       delete obj.droppedOn; delete obj.dropReason;
       if(!obj.noticeId && gc('p-ann')){
         const all = obj.affects.includes('everyone');
@@ -1363,10 +1406,10 @@ function settings(){
   </fieldset>
   ${mode==='supabase' && isAdmin ? `<fieldset class="fs"><legend>Who can see this workspace</legend>
     <label class="chk vis"><input type="radio" name="vis" id="vis-private" value="private" ${visibility!=='public'?'checked':''}><span><b>Private</b><br><span class="muted">Only invited people who sign in can see anything.</span></span></label>
-    <label class="chk vis"><input type="radio" name="vis" id="vis-public" value="public" ${visibility==='public'?'checked':''}><span><b>Public, read-only</b><br><span class="muted">Anyone with the link can read circles, people, minutes, proposals, the board and the wiki. Only invited people can sign in and edit. Contact details stay private.</span></span></label>
+    <label class="chk vis"><input type="radio" name="vis" id="vis-public" value="public" ${visibility==='public'?'checked':''}><span><b>Public, read-only</b><br><span class="muted">Anyone with the link can read ${tm('circles')}, people, minutes, proposals, the board and the wiki. Only invited people can sign in and edit. Contact details stay private.</span></span></label>
     <p class="hint">Before you make it public, check that your members agree to their names, roles and minutes being visible to anyone.</p>
   </fieldset>` : ''}
-  <fieldset class="fs"><legend>Where the data lives</legend><p class="hint">${mode==='supabase'?'Data is stored in your own Supabase database. Only invited people can sign in, and the database rules decide what each person can do.':mode==='shared'?'Data is shared: everyone who opens this page sees the same circles and records, and changes appear live.':'Data is saved in this browser only. To share it, open the published page on claude.ai or connect your own database.'}</p></fieldset>
+  <fieldset class="fs"><legend>Where the data lives</legend><p class="hint">${mode==='supabase'?'Data is stored in your own Supabase database. Only invited people can sign in, and the database rules decide what each person can do.':mode==='shared'?`Data is shared: everyone who opens this page sees the same ${tm('circles')} and records, and changes appear live.`:'Data is saved in this browser only. To share it, open the published page on claude.ai or connect your own database.'}</p></fieldset>
   <fieldset class="fs"><legend>Export or import</legend><p class="hint">Use this to back up your data or move it to your own hosted version.</p>
     <textarea id="s-json" rows="6" style="font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;width:100%" placeholder="Paste exported data here to import it"></textarea>
     <div class="row"><button class="btn sm" data-act="exportData" type="button">Show and copy all data</button><button class="btn sm w" data-act="importData" type="button">Import pasted data</button></div></fieldset>
@@ -1385,10 +1428,129 @@ function settings(){
     toast('Settings saved'); return true; } : null, {wide:true});
 }
 async function importData(){
-  let d; try{ d = JSON.parse($('#s-json').value); }catch(e){ toast('That is not valid exported data.'); return; }
+  const fileEl = $('#imp-file'); let txt = $('#s-json').value;
+  if(fileEl && fileEl.files && fileEl.files[0]) txt = await fileEl.files[0].text();
+  let d; try{ d = JSON.parse(txt); }catch(e){ toast('Paste exported data or choose a backup file first.'); return; }
   if(!d || !['sociocracy','circle-commons'].includes(d.format)){ toast('That is not exported Sociocracy data.'); return; }
   let n = 0; for(const c of COLS){ for(const doc of (d[c]||[])){ if(doc && doc.id){ await put(c, doc); n++; } } }
-  toast(`Imported ${n} records`); closeModal();
+  toast(`Imported ${n} records`); closeModal(); render();
+}
+
+
+/* ============ Admin ============ */
+function canAdmin(){ return mode === 'supabase' ? isAdmin : (canWrite && mode !== 'loading'); }
+const STD_FIELDS = [
+  ['pronouns','Pronouns','opt'],['photo','Photo','opt'],['bio','Short bio','opt'],['skills','Skills','opt'],['interests','Interests','opt'],
+  ['joined','Joined on','opt'],['buddy','Buddy','opt'],['email','Email','opt'],['phone','Phone','opt'],['channel','Preferred channel','opt'],
+  ['ecName','Emergency contact name','opt'],['ecPhone','Emergency contact phone','opt']
+];
+const CF_TYPES = {text:'Short text', long:'Long text', date:'Date', choice:'Choice from a list', link:'Link'};
+function orgCfg(){ return S.org.main || {}; }
+function fieldRule(k){ return (orgCfg().fields||{})[k] || (STD_FIELDS.find(f => f[0]===k)||[])[2] || 'opt'; }
+function customFields(){ return (orgCfg().customFields||[]).filter(f => f && f.id && f.label); }
+let adminDraft = null;
+function vAdmin(tab){
+  const tabs = [...(mode==='supabase' ? [['access','Access']] : []), ['workspace','Workspace'], ['terms','Terminology'], ['roles','Roles'], ['fields','Profile fields']];
+  if(!tab || !tabs.some(t => t[0]===tab)) tab = tabs[0][0];
+  const head = `<div class="head"><div class="t"><span class="eyebrow">Admin</span><h1>Admin</h1><p>Manage who has access and customize how this workspace looks and works. Only ${mode==='supabase'?'admins':'people who can edit'} see this page.</p></div></div>
+  <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<a href="#admin-${k}" role="tab" class="${k===tab?'on':''}" aria-selected="${k===tab}">${l}</a>`).join('')}</div>`;
+  if(!canAdmin()) return head + emptyBox('Only admins can open this page.');
+  if(tab === 'access') return head + vAccess(true);
+  if(tab === 'workspace') return head + adminWorkspace();
+  if(tab === 'terms') return head + adminTerms();
+  if(tab === 'roles') return head + adminRoles();
+  return head + adminFields();
+}
+function adminWorkspace(){
+  const org = orgCfg();
+  if(curLogo === null || adminDraft !== 'workspace'){ curLogo = org.logo || ''; adminDraft = 'workspace'; }
+  return `<section class="panel"><h2>Name and logo</h2>
+    <div class="photo-row"><span id="lg-wrap" class="logo-prev">${curLogo ? `<img src="${esc(curLogo)}" alt="">` : DEFAULT_LOGO}</span>
+      <div class="f"><span>Logo</span><input type="file" id="lg-file" accept="image/*"><small>A square image works best. It is resized so it loads fast.</small>${curLogo?'<button class="btn sm ghost" data-act="removeLogo" type="button">Use the default logo</button>':''}</div></div>
+    <div class="grid2">${fText('s-name','Name',org.name,{ph:'Sociocracy',hint:'Shown at the top of the menu and in the browser tab.'})}${fText('s-sub','Line under the name',org.subtitle ?? 'Shared governance workspace',{hint:'Leave empty to hide it.'})}</div>
+    ${fText('s-tag','Short description on Home',org.tagline)}
+    ${mode==='supabase' ? `<fieldset class="fs"><legend>Who can see this workspace</legend>
+    <label class="chk vis"><input type="radio" name="vis" id="vis-private" value="private" ${visibility!=='public'?'checked':''}><span><b>Private</b><br><span class="muted">Only invited people who sign in can see anything.</span></span></label>
+    <label class="chk vis"><input type="radio" name="vis" id="vis-public" value="public" ${visibility==='public'?'checked':''}><span><b>Public, read-only</b><br><span class="muted">Anyone with the link can read ${tm('circles')}, people, minutes, proposals, the board and the wiki. Only invited people can sign in and edit. Contact details and emergency contacts stay hidden.</span></span></label>
+    <p class="hint">Before you make it public, check that your members agree to their names, roles and minutes being visible to anyone.</p></fieldset>` : ''}
+    <div class="row"><button class="btn pri" data-act="saveWorkspace" type="button">Save changes</button></div>
+  </section>
+  <section class="panel"><h2>Where the data lives</h2><p class="muted" style="font-size:14px">${mode==='supabase'?'Data is stored in your own Supabase database. Only invited people can sign in, and the database rules decide what each person can do.':mode==='shared'?`Data is shared: everyone who opens this page sees the same ${tm('circles')} and records.`:'Data is saved in this browser only. Export it to keep a copy or move it to another device.'}</p></section>
+  <section class="panel"><h2>Export or import</h2><p class="muted" style="font-size:14px">Download a backup of all data, including contact details. Keep it somewhere safe. Importing adds or replaces records with the same ID.</p>
+    <div class="row">${mode==='shared'?'':'<button class="btn" data-act="downloadData" type="button">Download a backup</button>'}<button class="btn ghost" data-act="exportData" type="button">Copy all data</button></div>
+    <textarea id="s-json" rows="5" style="font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;width:100%" placeholder="To import, paste exported data here, or choose a backup file"></textarea>
+    <div class="row"><input type="file" id="imp-file" accept=".json,application/json"><button class="btn" data-act="importData" type="button">Import</button></div></section>
+  <section class="panel"><h2>Example data</h2><p class="muted" style="font-size:14px">Try the app with an example organization. Example records are marked and can be removed in one step.</p><div class="row"><button class="btn sm" data-act="loadExamples" type="button">Load example organization</button><button class="btn sm" data-act="removeExamples" type="button">Remove example data</button></div></section>`;
+}
+async function saveWorkspace(){
+  const org = orgCfg();
+  const ok = await put('org', {...org, id:'main', name:gv('s-name'), subtitle:$('#s-sub').value.trim(), tagline:gv('s-tag'), logo:curLogo||''});
+  if(!ok) return;
+  const vSel = document.querySelector('input[name="vis"]:checked');
+  if(mode === 'supabase' && vSel && vSel.value !== visibility){
+    const {error} = await sb.from('settings').upsert({key:'visibility', value:vSel.value});
+    if(error){ toast('Could not change who can see the workspace. Make sure setup.sql is up to date.'); return; }
+    visibility = vSel.value; toast(visibility === 'public' ? 'The workspace is now public and read-only for guests' : 'The workspace is now private'); render(); return;
+  }
+  toast('Settings saved');
+}
+const TERM_DEFAULTS = TERM_DEFAULTS_BASE;
+function adminTerms(){
+  const t = termsCfg();
+  return `<section class="panel"><h2>What you call your groups</h2><p class="muted" style="font-size:14px">Sociocracy calls them circles. Many organizations prefer teams, departments, groups or working groups. Your words replace "circle" everywhere in the app's menus, buttons and help text. What people have written themselves, such as names and minutes, does not change.</p>
+    <div class="grid2">${fText('tm-circle','One group (singular)',t.circle,{ph:'circle'})}${fText('tm-circles','Several groups (plural)',t.circles,{ph:'circles'})}</div>
+    <div class="row" style="gap:6px"><span class="bl-meta">Quick picks:</span>${[['circle','circles'],['team','teams'],['department','departments'],['group','groups'],['working group','working groups']].map(([a,b]) => `<button class="btn sm ghost" data-act="termPick" data-a="${a}" data-b="${b}" type="button">${a[0].toUpperCase()+a.slice(1)}</button>`).join('')}</div>
+  </section>
+  <section class="panel"><h2>Types of groups</h2><p class="muted" style="font-size:14px">The names of the four kinds of groups. The structure rules stay the same: one general group and at most one mission group.</p>
+    <div class="grid2">${fText('tm-general','Top-level group that links all others',t.general)}${fText('tm-mission','Group that holds the long-term mission',t.mission)}${fText('tm-department','Group that carries out an area of work',t.department)}${fText('tm-helping','Group that helps with part of another group\'s work',t.helping)}</div>
+    <div class="row"><button class="btn pri" data-act="saveTerms" type="button">Save terminology</button><button class="btn ghost" data-act="resetTerms" type="button">Back to the sociocracy terms</button></div>
+  </section>`;
+}
+function adminRoles(){
+  return `<section class="panel"><h2>Core roles</h2><p class="muted" style="font-size:14px">Rename the four core roles and change their descriptions. The descriptions appear on every ${tm('circle')} page and during selections. Leave a field empty to use the default.</p>
+    <div class="stack">${ROLE_DEFAULTS.map(([k,l,d]) => { const o = (orgCfg().roleNames||{})[k] || '', od = (orgCfg().roleDesc||{})[k] || ''; return `<div class="reprow"><div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">${fText('rn-'+k,'Name',o,{ph:l})}${fArea('rd-'+k,'Description',od,{rows:2,ph:d})}</div></div>`; }).join('')}</div>
+    <div class="row"><button class="btn pri" data-act="saveRoles" type="button">Save roles</button></div>
+  </section>`;
+}
+function adminFields(){
+  const rule = k => fieldRule(k);
+  const cf = customFields();
+  return `<section class="panel"><h2>Profile fields</h2><p class="muted" style="font-size:14px">Choose which details people must fill in on their profile. <b>Required</b> fields must be filled in to save a profile. <b>Hidden</b> fields are removed from the form and the profile, but anything already saved is kept.</p>
+    <div class="tscroll"><table><thead><tr><th>Field</th><th>Who can see it</th><th>Setting</th></tr></thead><tbody>
+      <tr><td><b>Name</b></td><td>Everyone</td><td><span class="muted">Always required</span></td></tr>
+      ${STD_FIELDS.map(([k,l]) => `<tr><td><b>${l}</b></td><td>${['email','phone','channel','ecName','ecPhone'].includes(k)?'Admins, members and the person':'Everyone'}</td><td><select class="sel fr-sel" data-k="${k}" aria-label="${l}"><option value="req" ${rule(k)==='req'?'selected':''}>Required</option><option value="opt" ${rule(k)==='opt'?'selected':''}>Optional</option><option value="off" ${rule(k)==='off'?'selected':''}>Hidden</option></select></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row"><button class="btn pri" data-act="saveFieldRules" type="button">Save field settings</button></div>
+  </section>
+  <section class="panel"><div class="ph"><h2>Custom fields</h2><button class="btn sm pri" data-act="editCustomField" type="button">Add a field</button></div>
+    <p class="muted" style="font-size:14px">Add your own questions to every profile, such as languages spoken, a skills level or a start date.</p>
+    ${cf.length ? `<div class="tscroll"><table><thead><tr><th>Field</th><th>Type</th><th>Who can see it</th><th>Setting</th><th></th></tr></thead><tbody>${cf.map((f,i) => `<tr><td><b>${esc(f.label)}</b>${f.help?`<div class="bl-meta">${esc(f.help)}</div>`:''}</td><td>${CF_TYPES[f.type]||f.type}${f.type==='choice'?`<div class="bl-meta">${esc((f.options||[]).join(', '))}</div>`:''}</td><td>${f.private?'Admins, members and the person':'Everyone'}</td><td>${f.req?'Required':'Optional'}</td><td><div class="row" style="gap:4px;flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm ghost" data-act="moveCustomField" data-i="${i}" data-d="-1" type="button" aria-label="Move up" ${i===0?'disabled':''}>↑</button><button class="btn sm ghost" data-act="moveCustomField" data-i="${i}" data-d="1" type="button" aria-label="Move down" ${i===cf.length-1?'disabled':''}>↓</button><button class="btn sm" data-act="editCustomField" data-id="${f.id}" type="button">Edit</button></div></td></tr>`).join('')}</tbody></table></div>` : emptyBox('No custom fields yet.')}
+  </section>`;
+}
+async function saveOrg(patch, msg){ const ok = await put('org', {...orgCfg(), id:'main', ...patch}); if(ok){ toast(msg); render(); } return ok; }
+function editCustomField(id){
+  const list = clone(orgCfg().customFields || []);
+  const f = id ? list.find(x => x.id === id) : {id:uid('f'), type:'text', req:false, private:false};
+  if(!f) return;
+  openModal(id ? 'Edit custom field' : 'Add a custom field', `${fText('cf-label','Question or label *',f.label,{ph:'e.g. Languages I speak'})}
+    ${fText('cf-help','Help text',f.help,{ph:'Optional. Shown under the field.'})}
+    <div class="grid2">${fSel('cf-type','Type',CF_TYPES,f.type||'text')}${fSel('cf-req','Setting',{opt:'Optional',req:'Required'},f.req?'req':'opt')}</div>
+    <label class="f" id="cf-optwrap" ${f.type==='choice'?'':'hidden'}><span>Choices *</span><textarea id="cf-opts" rows="3" placeholder="One choice per line">${esc((f.options||[]).join('\n'))}</textarea></label>
+    <div class="f"><span>Who can see it</span>${fChk('cf-priv','Private: only admins, members and the person can see it (like contact details)',f.private)}</div>`, async () => {
+    const label = gv('cf-label'); if(!label){ $('#cf-label').classList.add('bad'); throw new Invalid('Add a label.'); }
+    const type = gv('cf-type'); const options = lines($('#cf-opts').value);
+    if(type === 'choice' && !options.length){ $('#cf-opts').classList.add('bad'); throw new Invalid('Add at least one choice.'); }
+    const nf = {...f, label, help:gv('cf-help'), type, req:gv('cf-req')==='req', private:gc('cf-priv'), options: type==='choice' ? options : []};
+    const out = id ? list.map(x => x.id === id ? nf : x) : [...list, nf];
+    return saveOrg({customFields:out}, 'Custom field saved');
+  }, {saveLabel:'Save field', onDelete: id ? async () => saveOrg({customFields:list.filter(x => x.id !== id)}, 'Field removed. Answers already saved are kept.') : null, deleteLabel:'Remove field'});
+}
+function downloadBackup(){
+  const blob = new Blob([exportJSON()], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  const d = new Date(); a.download = `sociocracy-backup-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${d.getFullYear()}.json`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Backup downloaded');
 }
 
 /* ---------- Example organization ---------- */
@@ -1589,28 +1751,28 @@ function vWork(){
   const tools = `<div class="ptools">
     <div class="seg" role="group" aria-label="View">${modes.map(([k,l]) => `<button type="button" data-act="workMode" data-v="${k}" class="${workMode===k?'on':''}">${l}</button>`).join('')}</div>
     ${personSel}
-    <select id="wf-circle" aria-label="Circle" class="sel"><option value="">All circles</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===workCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    <select id="wf-circle" aria-label="Circle" class="sel"><option value="">All ${tm('circles')}</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===workCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
     <label class="chk"><input type="checkbox" id="wf-done" ${workDone?'checked':''}> Show done</label>
   </div>`;
   let body;
   if(workMode === 'projects'){
-    body = projs.length ? `<section class="panel"><div class="tscroll"><table><thead><tr><th>Project</th><th>Circle</th><th>Coordinator</th><th>Target</th><th>Progress</th><th>Status</th><th></th></tr></thead><tbody>${projs.map(p => { const {pg, pct} = projMeta(p); const [sl, sc] = P_STATUS[p.status||'active']; return `<tr>
+    body = projs.length ? `<section class="panel"><div class="tscroll"><table><thead><tr><th>Project</th><th>${tm('Circle')}</th><th>Coordinator</th><th>Target</th><th>Progress</th><th>Status</th><th></th></tr></thead><tbody>${projs.map(p => { const {pg, pct} = projMeta(p); const [sl, sc] = P_STATUS[p.status||'active']; return `<tr>
       <td><a href="#" data-act="openProject" data-id="${p.id}" style="color:var(--ink);font-weight:700;text-decoration:none">${esc(p.name)}</a>${p.description?`<div class="muted clamp" style="font-size:13px">${esc(p.description)}</div>`:''}</td>
       <td><a href="#circle-${p.circleId}-actions">${esc(circleName(p.circleId))}</a></td><td>${esc(p.owner||'—')}</td><td class="mono" style="white-space:nowrap">${mdy(p.due)||'—'}</td>
       <td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="pbar" style="width:70px"><i style="width:${pct}%"></i></div><span class="mono muted" style="white-space:nowrap">${pg.done}/${pg.total}</span></div></td>
-      <td>${stChip(sl, sc)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}</div></td></tr>`; }).join('')}</tbody></table></div></section>` : emptyBox('No projects match. Each circle creates projects on its Work tab.');
+      <td>${stChip(sl, sc)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm ghost w" data-act="editProject" data-id="${p.id}" type="button">Edit</button>${plusBtn(p.circleId, p.id, p.name)}</div></td></tr>`; }).join('')}</tbody></table></div></section>` : emptyBox(`No projects match. Each ${tm('circle')} creates projects on its Work tab.`);
   } else if(workMode === 'grouped'){
     const shown = workPerson ? projs.filter(p => list.some(a => a.projectId === p.id)) : projs;
     body = projectGroups(shown, list, true, true);
   } else {
     body = `<section class="panel"><div class="ph"><h2>Who is responsible</h2><span class="bl-meta">${open.length} open task${open.length===1?'':'s'}${unassigned?` · ${unassigned} without an owner`:''}</span></div>
-    ${summary.length ? `<div class="tscroll"><table><thead><tr><th>Person</th><th>Open</th><th>Overdue</th><th>Circles</th></tr></thead><tbody>${summary.map(x => `<tr><td><a href="#" data-act="workPerson" data-p="${esc(x.o)}" style="text-decoration:none;color:var(--ink)">${person(x.o,false)}</a></td><td class="mono">${x.n}</td><td class="mono" style="${x.late?'color:var(--bad)':''}">${x.late}</td><td>${x.circles.map(id => `<a href="#circle-${id}-actions">${esc(circleName(id))}</a>`).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No open tasks with an owner.</p>'}
+    ${summary.length ? `<div class="tscroll"><table><thead><tr><th>Person</th><th>Open</th><th>Overdue</th><th>${tm('Circles')}</th></tr></thead><tbody>${summary.map(x => `<tr><td><a href="#" data-act="workPerson" data-p="${esc(x.o)}" style="text-decoration:none;color:var(--ink)">${person(x.o,false)}</a></td><td class="mono">${x.n}</td><td class="mono" style="${x.late?'color:var(--bad)':''}">${x.late}</td><td>${x.circles.map(id => `<a href="#circle-${id}-actions">${esc(circleName(id))}</a>`).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No open tasks with an owner.</p>'}
   </section>
   <section class="panel"><div class="ph"><h2>Tasks</h2><span class="bl-meta">${list.length} shown</span></div>
-    ${list.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>Circle</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${list.map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No tasks match.</p>'}
+    ${list.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>${tm('Circle')}</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${list.map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No tasks match.</p>'}
   </section>`;
   }
-  return `<div class="head"><div class="t"><span class="eyebrow">Across all circles</span><h1>Work</h1><p>Every task and project in every circle, and who is responsible. Each circle creates its own projects and tasks on its Work tab.</p></div></div>
+  return `<div class="head"><div class="t"><span class="eyebrow">Across all ${tm('circles')}</span><h1>Work</h1><p>Every task and project in every ${tm('circle')}, and who is responsible. Each ${tm('circle')} creates its own projects and tasks on its Work tab.</p></div></div>
   ${tools}${body}`;
 }
 function checkRow(x={}){ const k = uid('q'); return `<div class="ckrow" data-k="${k}"><input type="checkbox" id="kd-${k}" ${x.done?'checked':''} aria-label="Done"><input id="kt-${k}" value="${esc(x.text)}" placeholder="Step" class="ckin"><button class="btn sm ghost" data-act="removeCk" type="button" aria-label="Remove step">Remove</button></div>`; }
@@ -1639,7 +1801,7 @@ function editProject(id, circleId){
     const name = gv('j-name'); if(!name){ toast('Name the project.'); return false; }
     const ok = await put('projects', {...p, name, description:gv('j-desc'), owner:gv('j-owner'), due:gd('j-due'), status:gv('j-status')});
     if(ok){ toast('Project saved'); if(!id) workProject = p.id; render(); } return ok;
-  }, {saveLabel:id?'Save project':'Create project', onDelete: id ? async () => { await remove('projects', id); if(workProject===id) workProject='all'; toast('Project deleted. Its tasks stay in the circle.'); return true; } : null, deleteLabel:'Delete project'});
+  }, {saveLabel:id?'Save project':'Create project', onDelete: id ? async () => { await remove('projects', id); if(workProject===id) workProject='all'; toast(`Project deleted. Its tasks stay in the ${tm('circle')}.`); return true; } : null, deleteLabel:'Delete project'});
 }
 
 /* ============ Wiki ============ */
@@ -1724,7 +1886,7 @@ function wikiLists(){
   const lib = vals('wiki').filter(w => !w.courseId || !S.courses[w.courseId]);
   const policiesNoPage = vals('proposals').filter(p => p.stage === 'consented' && !vals('wiki').some(w => w.proposalId === p.id));
   const cats = Object.entries(WCATS).filter(([k]) => lib.some(w => w.category === k) || (k === 'policies' && policiesNoPage.length) || ['agreements','policies','howto','reference'].includes(k));
-  const starterBox = vals('courses').some(c => c.starter) ? '' : `<div class="starter w"><div><b>Add the starter course: Sociocracy basics</b><p class="muted" style="font-size:14px">Eleven short lessons on circles, roles, consent, meetings and selections. It becomes your own course to edit.</p></div><button class="btn pri" data-act="addStarter" type="button">Add the starter course</button></div>`;
+  const starterBox = vals('courses').some(c => c.starter) ? '' : `<div class="starter w"><div><b>Add the starter course: Sociocracy basics</b><p class="muted" style="font-size:14px">Eleven short lessons on ${tm('circles')}, roles, consent, meetings and selections. It becomes your own course to edit.</p></div><button class="btn pri" data-act="addStarter" type="button">Add the starter course</button></div>`;
   return `<section class="panel"><div class="ph"><h2>Courses</h2><button class="btn sm w" data-act="newCourse" type="button">New course</button></div>
     <p class="muted" style="font-size:14px">Step-by-step paths through how we work. Read the lessons in order, or jump to the one you need.</p>
     ${starterBox}
@@ -1733,11 +1895,11 @@ function wikiLists(){
   <section class="panel"><div class="ph"><h2>Library</h2><button class="btn sm w" data-act="newWiki" type="button">New page</button></div>
     <p class="muted" style="font-size:14px">Agreements, policies and reference pages to look things up.</p>
     <div class="cols">${cats.map(([k,l]) => { const ps = lib.filter(w => w.category === k).sort((a,b)=>(a.title||'').localeCompare(b.title||'')); if(!ps.length && !(k==='policies' && policiesNoPage.length) && !canWrite) return ''; return `<div class="libcol"><div class="ph"><h3>${l}</h3><button class="btn sm ghost w" data-act="newWiki" data-cat="${k}" type="button">Add</button></div>${ps.length ? `<div class="list">${ps.map(libItem).join('')}</div>` : `<p class="muted" style="font-size:13.5px">No pages yet.</p>`}
-      ${k==='policies' && policiesNoPage.length ? `<div class="def" style="margin-top:10px"><span class="eyebrow">Consented in circles, not in the wiki yet</span><div class="list">${policiesNoPage.map(p => `<div class="item"><div class="body"><a class="ttl" href="#proposal-${p.id}">${esc(p.title)}</a><span class="bl-meta">${esc(circleName(p.circleId))} · consented <span class="mono">${mdy(p.decided)}</span></span></div><button class="btn sm w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add</button></div>`).join('')}</div></div>` : ''}</div>`; }).join('')}</div>
+      ${k==='policies' && policiesNoPage.length ? `<div class="def" style="margin-top:10px"><span class="eyebrow">Consented in ${tm('circles')}, not in the wiki yet</span><div class="list">${policiesNoPage.map(p => `<div class="item"><div class="body"><a class="ttl" href="#proposal-${p.id}">${esc(p.title)}</a><span class="bl-meta">${esc(circleName(p.circleId))} · consented <span class="mono">${mdy(p.decided)}</span></span></div><button class="btn sm w" data-act="wikiFromProposal" data-id="${p.id}" type="button">Add</button></div>`).join('')}</div></div>` : ''}</div>`; }).join('')}</div>
   </section>`;
 }
 function vWiki(){
-  return `<div class="head"><div class="t"><span class="eyebrow">Wiki</span><h1>Learn how we work</h1><p>Courses walk you through how our community works, step by step. The library holds our agreements, policies and reference pages. Each course and page is looked after by a circle, which keeps it current.</p></div></div>
+  return `<div class="head"><div class="t"><span class="eyebrow">Wiki</span><h1>Learn how we work</h1><p>Courses walk you through how our community works, step by step. The library holds our agreements, policies and reference pages. Each course and page is looked after by ${art('a','circle')}, which keeps it current.</p></div></div>
   <input id="wq" class="bigsearch" value="${esc(wikiQ)}" placeholder="Search courses and pages" aria-label="Search courses and pages" autocomplete="off">
   <div id="wiki-list" style="display:flex;flex-direction:column;gap:18px">${wikiLists()}</div>`;
 }
@@ -1771,8 +1933,8 @@ function vCourse(id){
       <section class="panel"><div class="ph"><h2>Course content</h2><span class="bl-meta">${flat.length} lessons · ${fmtMins(mins)}</span></div><div class="outline">${outlineHTML(id, null, {allOpen:true, edit:true})}</div></section>
     </div>
     <aside class="course-side">
-      ${st?`<div class="side-card"><span class="eyebrow">Looked after by</span><a href="#circle-${st.id}" class="ttl">${esc(st.name)}</a>${st.aim?`<p class="muted" style="font-size:13.5px">${esc(st.aim)}</p>`:''}${st.roles?.leader?.holder||st.roles?.secretary?.holder?`<div class="bl-meta">${[st.roles?.leader?.holder&&'Leader: '+esc(st.roles.leader.holder), st.roles?.secretary?.holder&&'Secretary: '+esc(st.roles.secretary.holder)].filter(Boolean).join(' · ')}</div>`:''}</div>`:''}
-      <div class="side-card"><span class="eyebrow">Questions about this course?</span><p class="muted" style="font-size:13.5px">Ask the circle that looks after it, or suggest a change in its backlog.</p></div>
+      ${st?`<div class="side-card"><span class="eyebrow">Looked after by</span><a href="#circle-${st.id}" class="ttl">${esc(st.name)}</a>${st.aim?`<p class="muted" style="font-size:13.5px">${esc(st.aim)}</p>`:''}${st.roles?.leader?.holder||st.roles?.secretary?.holder?`<div class="bl-meta">${[st.roles?.leader?.holder&&`${tm('Leader')}: `+esc(st.roles.leader.holder), st.roles?.secretary?.holder&&`${tm('Secretary')}: `+esc(st.roles.secretary.holder)].filter(Boolean).join(' · ')}</div>`:''}</div>`:''}
+      <div class="side-card"><span class="eyebrow">Questions about this course?</span><p class="muted" style="font-size:13.5px">Ask the ${tm('circle')} that looks after it, or suggest a change in its backlog.</p></div>
     </aside>
   </div>`;
 }
@@ -1903,11 +2065,11 @@ function wikiHistory(id){
    The database rules in setup.sql enforce these roles; the page only mirrors them. */
 const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js';
 let sb = null, me = {email:'', role:'', name:''}, isAdmin = false, membersList = null, sbHandled = false, lastInvite = '', visibility = 'private';
-const ROLE_INFO = {
+Object.defineProperty(window, 'ROLE_INFO', {get(){ return {
   admin:['Admin','Everything members can do, plus invite people, change access, and change the name and logo.'],
-  member:['Member','Read everything, see emergency contacts, and create or edit circles, meetings, proposals, work and the wiki. Can edit people who have not signed in yet.'],
+  member:['Member',`Read everything, see emergency contacts, and create or edit ${tm('circles')}, meetings, proposals, work and the wiki. Can edit people who have not signed in yet.`],
   viewer:['Viewer','Read everything except contact details. Can only change their own profile.']
-};
+}; }});
 function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
 function appName(){ return (S.org.main||{}).name || (window.CC_CONFIG||{}).appName || 'Sociocracy'; }
 function showGate(inner){
@@ -1965,7 +2127,7 @@ async function afterSignIn(session){
   hideGate(); mode = 'loading'; render();
   await loadAllDocs(); subscribeDocs();
   await linkMyProfile(me.name);
-  if(!personByEmail(me.email) && isAdmin) memberNameModal(me.email, '', 'Add the name others will see. You will appear in People and can be added to circles.');
+  if(!personByEmail(me.email) && isAdmin) memberNameModal(me.email, '', `Add the name others will see. You will appear in People and can be added to ${tm('circles')}.`);
 }
 async function loadAllDocs(){
   const all = []; let from = 0;
@@ -2002,8 +2164,8 @@ async function fetchMembers(){
   render();
 }
 function inviteText(email){ const url = location.origin + location.pathname; return `You're invited to ${appName()}. Open ${url} and sign in with ${email}. You'll get an email with a sign-in link.`; }
-function vAccess(){
-  const head = `<div class="head"><div class="t"><span class="eyebrow">Admin</span><h1>Access</h1><p>Invite people by email and choose what they can do. Only invited people can sign in and see this workspace.</p></div></div>`;
+function vAccess(noHead){
+  const head = noHead ? `<p class="muted" style="max-width:70ch">Invite people by email and choose what they can do. Only invited people can sign in and see this workspace.</p>` : `<div class="head"><div class="t"><span class="eyebrow">Admin</span><h1>Access</h1><p>Invite people by email and choose what they can do. Only invited people can sign in and see this workspace.</p></div></div>`;
   if(mode !== 'supabase' || !isAdmin) return head + emptyBox('Only admins can manage access.');
   if(membersList === null){ fetchMembers(); return head + '<p class="muted">Loading the member list…</p>'; }
   const counts = {admin:0, member:0, viewer:0}; membersList.forEach(m => counts[m.role] = (counts[m.role]||0) + 1);
@@ -2032,7 +2194,7 @@ function vAccess(){
 /* ---------- Member picker: people come from the People directory ---------- */
 function memberPicker(selected){
   const all = allPeopleNames(); const sel = new Set(selected || []);
-  return `<div class="f"><span>Members</span><small>Tick the people in this circle. Everyone with an account, and everyone in People, is listed.</small>
+  return `<div class="f"><span>Members</span><small>Tick the people in this ${tm('circle')}. Everyone with an account, and everyone in People, is listed.</small>
     ${all.length > 8 ? '<input id="mp-filter" class="sel" placeholder="Filter by name" autocomplete="off" aria-label="Filter people">' : ''}
     <div class="mpick" id="mpick">${all.map(n => `<label class="chk mp" data-n="${esc(n.toLowerCase())}"><input type="checkbox" class="mp-cb" value="${esc(n)}" ${sel.has(n)?'checked':''}>${avatar(n)}<span>${esc(n)}</span></label>`).join('') || '<span class="muted">Nobody in People yet. Add names below.</span>'}</div>
     ${fText('f-members-new','Add someone who is not listed','',{ph:'Names separated by commas',hint:'They also appear in People.'})}</div>`;
@@ -2069,7 +2231,7 @@ async function ensurePerson(name, email){
   return rec;
 }
 function memberNameModal(email, current, intro){
-  openModal(intro ? 'What is your name?' : 'Name in People', `${intro ? `<p class="muted" style="font-size:14px">${intro}</p>` : ''}${fText('mn-name','Name',current||'',{list:1,ph:'e.g. Lina Barbal',hint:'Shown in People, circles and tasks. If this person is already in People, pick their name.'})}`, async () => {
+  openModal(intro ? 'What is your name?' : 'Name in People', `${intro ? `<p class="muted" style="font-size:14px">${intro}</p>` : ''}${fText('mn-name','Name',current||'',{list:1,ph:'e.g. Lina Barbal',hint:`Shown in People, ${tm('circles')} and tasks. If this person is already in People, pick their name.`})}`, async () => {
     const name = gv('mn-name'); if(!name){ toast('Add a name.'); return false; }
     const {error} = await sb.from('members').update({person_name:name}).eq('email', email);
     if(error){ toast('Could not save the name.'); return false; }
@@ -2113,11 +2275,11 @@ function peopleRows(){
     .filter(p => !peopleRole || (peopleRole === 'none' ? !p.roles.length : peopleRole === 'any' ? p.roles.length : peopleRole === 'x' ? p.roles.some(r => r.key === 'x') : p.roles.some(r => r.key === peopleRole)))
     .filter(p => !q || [p.n, p.rec?.bio, p.rec?.skills, p.rec?.interests, ...p.circles.map(c => c.name), ...p.roles.map(r => r.role)].join(' ').toLowerCase().includes(q));
 }
-function loadLabel(p){ const r = p.roles.length; return r ? `${r} role${r===1?'':'s'} in ${new Set(p.roles.map(x => x.c.id)).size} circle${new Set(p.roles.map(x => x.c.id)).size===1?'':'s'}` : 'No roles'; }
+function loadLabel(p){ const r = p.roles.length; return r ? `${r} role${r===1?'':'s'} in ${new Set(p.roles.map(x => x.c.id)).size} ${tm('circle')}${new Set(p.roles.map(x => x.c.id)).size===1?'':'s'}` : 'No roles'; }
 function peopleList(){
   const rows = peopleRows();
-  if(!rows.length) return emptyBox(allPeopleNames().length ? 'Nobody matches these filters.' : 'No people yet. People appear here when they are added to a circle, or you can add them directly.', `<button class="btn sm w" data-act="newPerson" type="button">Add a person</button>`);
-  if(peopleView === 'list') return `<div class="tscroll"><table class="ptable"><thead><tr><th>Person</th><th>Circles</th><th>Roles</th><th>Open tasks</th><th>Skills</th></tr></thead><tbody>${rows.map(p => `<tr>
+  if(!rows.length) return emptyBox(allPeopleNames().length ? 'Nobody matches these filters.' : `No people yet. People appear here when they are added to ${art('a','circle')}, or you can add them directly.`, `<button class="btn sm w" data-act="newPerson" type="button">Add a person</button>`);
+  if(peopleView === 'list') return `<div class="tscroll"><table class="ptable"><thead><tr><th>Person</th><th>${tm('Circles')}</th><th>Roles</th><th>Open tasks</th><th>Skills</th></tr></thead><tbody>${rows.map(p => `<tr>
     <td><a class="person plain" href="#person-${pid(p.n)}">${avatar(p.n)}<span><b>${esc(p.n)}</b>${p.rec?.pronouns?`<br><span class="pron">${esc(p.rec.pronouns)}</span>`:''}</span></a></td>
     <td>${p.circles.map(c => `<a href="#circle-${c.id}">${esc(c.name)}</a>`).join(', ') || '<span class="muted">—</span>'}</td>
     <td>${p.roles.map(r => `${esc(r.role)} <span class="muted">· ${esc(r.c.name)}</span>`).join('<br>') || '<span class="muted">—</span>'}</td>
@@ -2128,16 +2290,16 @@ function peopleList(){
     ${avatar(p.n, 'av-lg')}
     <b class="pc-name">${esc(p.n)}</b>${p.rec?.pronouns?`<span class="pron">${esc(p.rec.pronouns)}</span>`:''}
     ${p.roles.length ? `<div class="pc-roles">${p.roles.slice(0,3).map(r => `<span class="chip">${esc(r.role)} · ${esc(r.c.name.replace(/ Circle$/,''))}</span>`).join('')}${p.roles.length>3?`<span class="chip">+${p.roles.length-3}</span>`:''}</div>` : ''}
-    <span class="bl-meta">${p.circles.length} circle${p.circles.length===1?'':'s'} · ${loadLabel(p)}${p.tasks.length?` · ${p.tasks.length} open task${p.tasks.length===1?'':'s'}`:''}</span>
+    <span class="bl-meta">${p.circles.length} ${tm('circle')}${p.circles.length===1?'':'s'} · ${loadLabel(p)}${p.tasks.length?` · ${p.tasks.length} open task${p.tasks.length===1?'':'s'}`:''}</span>
     ${p.rec?.skills ? `<span class="muted pc-skills">${esc(splitList(p.rec.skills).slice(0,4).join(' · '))}</span>` : ''}
   </a>`).join('')}</div>`;
 }
 function vPeople(){
-  const roleOpts = {'':'Any or no role', any:'Holds a role', leader:'Leaders', delegate:'Delegates', facilitator:'Facilitators', secretary:'Secretaries', x:'Other roles', none:'No role'};
-  return `<div class="head"><div class="t"><span class="eyebrow">Community</span><h1>People</h1><p>Everyone in the community, the circles they belong to and the roles they hold.</p></div><div class="row"><button class="btn pri w" data-act="newPerson" type="button">Add a person</button></div></div>
+  const roleOpts = {'':'Any or no role', any:'Holds a role', leader:`${tm('Leaders')}`, delegate:`${tm('Delegates')}`, facilitator:`${tm('Facilitators')}`, secretary:`${tm('Secretaries')}`, x:'Other roles', none:'No role'};
+  return `<div class="head"><div class="t"><span class="eyebrow">Community</span><h1>People</h1><p>Everyone in the community, the ${tm('circles')} they belong to and the roles they hold.</p></div><div class="row"><button class="btn pri w" data-act="newPerson" type="button">Add a person</button></div></div>
   <div class="ptools">
     <input id="pq" class="sel" value="${esc(peopleQ)}" placeholder="Search names, skills, circles" aria-label="Search people" autocomplete="off">
-    <select id="pf-circle" class="sel" aria-label="Circle"><option value="">All circles</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===peopleCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+    <select id="pf-circle" class="sel" aria-label="Circle"><option value="">All ${tm('circles')}</option>${ordered().map(([c]) => `<option value="${c.id}" ${c.id===peopleCircle?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
     <select id="pf-role" class="sel" aria-label="Role">${Object.entries(roleOpts).map(([k,l]) => `<option value="${k}" ${k===peopleRole?'selected':''}>${l}</option>`).join('')}</select>
     <div class="seg" role="group" aria-label="View"><button type="button" data-act="peopleView" data-v="grid" class="${peopleView==='grid'?'on':''}">Grid</button><button type="button" data-act="peopleView" data-v="list" class="${peopleView==='list'?'on':''}">List</button></div>
   </div>
@@ -2149,20 +2311,29 @@ function vPerson(id){
   const rec = personRec(n) || {}, roles = personRoles(n), circles = personCircles(n), tasks = personTasks(n);
   const contact = rec.id ? S.contacts[rec.id] : null;
   const def = (t, v) => v ? `<div class="def"><span class="eyebrow">${t}</span><div class="txt">${esc(v)}</div></div>` : '';
+  const on = k => fieldRule(k) !== 'off';
+  const cvPub = rec.custom || {}, cvPriv = (contact && contact.custom) || {};
+  const cfShow = f => { const v = f.private ? cvPriv[f.id] : cvPub[f.id]; if(!v) return ''; const val = f.type === 'date' ? `<span class="mono">${mdy(v)}</span>` : f.type === 'link' && /^https?:\/\//i.test(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" style="overflow-wrap:anywhere">${esc(v)}</a>` : `<div class="txt">${esc(v)}</div>`; return `<div class="def"><span class="eyebrow">${esc(f.label)}</span>${val}</div>`; };
+  const pubHTML = customFields().filter(f => !f.private).map(cfShow).join(''), privHTML = customFields().filter(f => f.private).map(cfShow).join('');
+  const mine = rec.id && ((mode === 'supabase' && rec.ownerEmail && rec.ownerEmail === me.email));
+  const missingReq = mine ? [...STD_FIELDS.filter(([k]) => fieldRule(k) === 'req' && !(['email','phone','channel','ecName','ecPhone'].includes(k) ? (contact||{})[k] : rec[k])).map(f => f[1]), ...customFields().filter(f => f.req && !(f.private ? cvPriv[f.id] : cvPub[f.id])).map(f => f.label)] : [];
   const chips = (t, v) => splitList(v).length ? `<div class="def"><span class="eyebrow">${t}</span><div class="row">${splitList(v).map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div></div>` : '';
   return `<nav class="crumb"><a href="#people">People</a><span>/</span><span>${esc(n)}</span></nav>
-  <div class="prof-head">${avatar(n, 'av-xl')}<div class="t"><h1>${esc(n)}${rec.pronouns?` <span class="pron-h">${esc(rec.pronouns)}</span>`:''}</h1><div class="les-meta">${mode==='supabase' && rec.ownerEmail && rec.ownerEmail===me.email ? '<span class="chip">This is you</span>' : ''}<span>${loadLabel({roles})}</span><span>${circles.length} circle${circles.length===1?'':'s'}</span>${rec.joined?`<span>Joined <span class="mono">${mdy(rec.joined)}</span></span>`:''}${rec.example?'<span class="chip">Example</span>':''}</div>${rec.bio?`<p class="lede">${esc(rec.bio)}</p>`:''}</div>
+  <div class="prof-head">${avatar(n, 'av-xl')}<div class="t"><h1>${esc(n)}${rec.pronouns && on('pronouns')?` <span class="pron-h">${esc(rec.pronouns)}</span>`:''}</h1><div class="les-meta">${mode==='supabase' && rec.ownerEmail && rec.ownerEmail===me.email ? '<span class="chip">This is you</span>' : ''}<span>${loadLabel({roles})}</span><span>${circles.length} ${tm('circle')}${circles.length===1?'':'s'}</span>${rec.joined && on('joined')?`<span>Joined <span class="mono">${mdy(rec.joined)}</span></span>`:''}${rec.example?'<span class="chip">Example</span>':''}</div>${rec.bio && on('bio')?`<p class="lede">${esc(rec.bio)}</p>`:''}</div>
     <div class="row">${canEditPerson(rec.id ? rec : null) ? `<button class="btn" data-act="editPerson" data-name="${esc(n)}" type="button">${rec.id?'Edit profile':'Complete profile'}</button>` : ''}</div></div>
+  ${missingReq.length ? `<div class="req-banner"><span><b>Your profile is missing some details:</b> ${esc(missingReq.join(', '))}.</span><button class="btn sm pri" data-act="editPerson" data-name="${esc(n)}" type="button">Complete profile</button></div>` : ''}
   <div class="course-body">
     <div class="course-main">
-      <section class="panel"><h2>Circles and roles</h2>${circles.length ? `<div class="tscroll"><table><thead><tr><th>Circle</th><th>Roles</th><th>Term ends</th></tr></thead><tbody>${circles.map(c => { const rs = roles.filter(r => r.c.id === c.id); return `<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a><div class="bl-meta">${CTYPES[c.type]||''}</div></td><td>${rs.map(r => esc(r.role)).join('<br>') || '<span class="muted">Member</span>'}</td><td class="mono">${rs.map(r => mdy(r.termEnd) || '—').join('<br>') || '—'}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted">Not in any circle yet.</p>'}</section>
-      <section class="panel"><div class="ph"><h2>Open tasks</h2><a href="#work" class="bl-meta">All work</a></div>${tasks.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>Circle</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No open tasks.</p>'}</section>
+      ${pubHTML ? `<section class="panel"><h2>About</h2>${pubHTML}</section>` : ''}
+      <section class="panel"><h2>${tm('Circles')} and roles</h2>${circles.length ? `<div class="tscroll"><table><thead><tr><th>${tm('Circle')}</th><th>Roles</th><th>Term ends</th></tr></thead><tbody>${circles.map(c => { const rs = roles.filter(r => r.c.id === c.id); return `<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a><div class="bl-meta">${CTYPES[c.type]||''}</div></td><td>${rs.map(r => esc(r.role)).join('<br>') || '<span class="muted">Member</span>'}</td><td class="mono">${rs.map(r => mdy(r.termEnd) || '—').join('<br>') || '—'}</td></tr>`; }).join('')}</tbody></table></div>` : `<p class="muted">Not in any ${tm('circle')} yet.</p>`}</section>
+      <section class="panel"><div class="ph"><h2>Open tasks</h2><a href="#work" class="bl-meta">All work</a></div>${tasks.length ? `<div class="tscroll"><table><thead><tr><th>Task</th><th>${tm('Circle')}</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${tasks.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(a => taskRow(a, true)).join('')}</tbody></table></div>` : '<p class="muted">No open tasks.</p>'}</section>
     </div>
     <aside class="course-side">
       ${contact && (contact.ecName || contact.ecPhone) ? `<div class="side-card ec"><span class="eyebrow">Emergency contact</span>${contact.ecName?`<div>${esc(contact.ecName)}</div>`:''}${contact.ecPhone?`<div class="row" style="gap:6px"><span class="mono">${esc(contact.ecPhone)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.ecPhone)}" type="button">Copy</button></div>`:''}<span class="bl-meta">Visible only to people who can edit the workspace.</span></div>` : ''}
       <div class="side-card"><span class="eyebrow">Contact</span>${contact && (contact.email || contact.phone) ? `${contact.channel?`<div><b>Prefers:</b> ${esc(contact.channel)}</div>`:''}${contact.email?`<div class="row" style="gap:6px"><span class="mono" style="overflow-wrap:anywhere">${esc(contact.email)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.email)}" type="button">Copy</button></div>`:''}${contact.phone?`<div class="row" style="gap:6px"><span class="mono">${esc(contact.phone)}</span><button class="btn sm ghost" data-act="copyText" data-t="${esc(contact.phone)}" type="button">Copy</button></div>`:''}` : `<p class="muted" style="font-size:13.5px">${rec.id ? 'No contact details shared, or only members can see them.' : 'No profile yet.'}</p>`}</div>
-      ${chips('Skills', rec.skills) || chips('Interests', rec.interests) ? `<div class="side-card">${chips('Skills', rec.skills)}${chips('Interests', rec.interests)}</div>` : ''}
-      ${rec.buddy ? `<div class="side-card"><span class="eyebrow">Buddy</span>${person(rec.buddy)}</div>` : ''}
+      ${privHTML ? `<div class="side-card ec"><span class="eyebrow">Private details</span>${privHTML}<span class="bl-meta">Visible only to people who can edit the workspace and this person.</span></div>` : ''}
+      ${(on('skills') && chips('Skills', rec.skills)) || (on('interests') && chips('Interests', rec.interests)) ? `<div class="side-card">${on('skills') ? chips('Skills', rec.skills) : ''}${on('interests') ? chips('Interests', rec.interests) : ''}</div>` : ''}
+      ${rec.buddy && on('buddy') ? `<div class="side-card"><span class="eyebrow">Buddy</span>${person(rec.buddy)}</div>` : ''}
     </aside>
   </div>`;
 }
@@ -2191,31 +2362,99 @@ function editPerson(name){
   const canRename = !existing || canWrite;
   const canDelete = existing && (mode !== 'supabase' ? canWrite : (isAdmin || (canWrite && !existing.ownerEmail)));
   curPhoto = p.photo || '';
-  const body = `<div class="photo-row"><span id="pp-wrap">${curPhoto ? `<img class="av-xl" src="${esc(curPhoto)}" alt="">` : `<span class="av-xl">${esc(initials(p.name||'?'))}</span>`}</span>
-    <div class="f"><span>Photo</span><input type="file" id="pp-file" accept="image/*"><small>Cropped to a square and made small, so it loads fast.</small>${curPhoto?'<button class="btn sm ghost" data-act="removePhoto" type="button">Remove photo</button>':''}</div></div>
-  <div class="grid2">${fText('pe-name','Name',p.name,{hint:!canRename?'Ask an admin to change your name.':existing?'Changing the name updates it everywhere: circles, roles, tasks and minutes.':''})}${fText('pe-pron','Pronouns',p.pronouns,{ph:'e.g. she/her, he/him, they/them',hint:'Optional. Shown next to the name.'})}</div>
-  ${fArea('pe-bio','Short bio',p.bio,{rows:3,ph:'What you do, and how you got involved'})}
-  <div class="grid2">${fText('pe-skills','Skills',p.skills,{ph:'e.g. facilitation, bookkeeping, design',hint:'Separate with commas.'})}${fText('pe-int','Interests',p.interests,{ph:'e.g. events, gardening',hint:'Separate with commas.'})}</div>
-  <div class="grid2">${fDate('pe-joined','Joined on',p.joined)}${fText('pe-buddy','Buddy',p.buddy,{list:1,hint:'For new members: who helps them settle in.'})}</div>
-  <fieldset class="fs"><legend>Contact</legend><p class="hint">Only people who can edit the workspace (Admins and Members) see contact details${mode==='supabase'?', plus the person themselves':''}. All fields are optional.</p>
-    <div class="grid3">${fText('pe-email','Email',ct.email)}${fText('pe-phone','Phone',ct.phone)}${fText('pe-chan','Preferred channel',ct.channel,{ph:'e.g. Signal, email'})}</div></fieldset>
-  <fieldset class="fs"><legend>Emergency contact</legend><p class="hint">Who to contact if something happens. Same visibility as contact details.</p>
-    <div class="grid2">${fText('pe-ecname','Name and relationship',ct.ecName,{ph:'e.g. Marta Puig, sister'})}${fText('pe-ecphone','Phone',ct.ecPhone)}</div></fieldset>`;
+  const on = k => fieldRule(k) !== 'off', lb = (k, l) => l + (fieldRule(k) === 'req' ? ' *' : '');
+  const cvals = {...(p.custom||{}), ...(ct.custom||{})};
+  const cfInput = f => { const id = 'cf-' + f.id, v = cvals[f.id] || '', l = esc(f.label) + (f.req ? ' *' : ''), o = {hint: f.help ? esc(f.help) : '' };
+    if(f.type === 'long') return fArea(id, l, v, {rows:3, ...o});
+    if(f.type === 'date') return `<div>${fDate(id, l, v)}${f.help?`<small class="hint">${esc(f.help)}</small>`:''}</div>`;
+    if(f.type === 'choice') return `<label class="f"><span>${l}</span><select id="${id}"><option value="">Choose…</option>${(f.options||[]).map(x => `<option ${x===v?'selected':''}>${esc(x)}</option>`).join('')}</select>${f.help?`<small>${esc(f.help)}</small>`:''}</label>`;
+    return fText(id, l, v, {ph: f.type === 'link' ? 'https://' : '', ...o}); };
+  const pubCF = customFields().filter(f => !f.private), privCF = customFields().filter(f => f.private);
+  const contactOn = ['email','phone','channel'].filter(on), ecOn = ['ecName','ecPhone'].filter(on);
+  const body = `${on('photo') ? `<div class="photo-row"><span id="pp-wrap">${curPhoto ? `<img class="av-xl" src="${esc(curPhoto)}" alt="">` : `<span class="av-xl">${esc(initials(p.name||'?'))}</span>`}</span>
+    <div class="f"><span>${lb('photo','Photo')}</span><input type="file" id="pp-file" accept="image/*"><small>Cropped to a square and made small, so it loads fast.</small>${curPhoto?'<button class="btn sm ghost" data-act="removePhoto" type="button">Remove photo</button>':''}</div></div>` : ''}
+  <div class="grid2">${fText('pe-name','Name *',p.name,{hint:!canRename?'Ask an admin to change your name.':existing?`Changing the name updates it everywhere: ${tm('circles')}, roles, tasks and minutes.`:''})}${on('pronouns') ? fText('pe-pron',lb('pronouns','Pronouns'),p.pronouns,{ph:'e.g. she/her, he/him, they/them',hint:'Shown next to the name.'}) : ''}</div>
+  ${on('bio') ? fArea('pe-bio',lb('bio','Short bio'),p.bio,{rows:3,ph:'What you do, and how you got involved'}) : ''}
+  <div class="grid2">${on('skills') ? fText('pe-skills',lb('skills','Skills'),p.skills,{ph:'e.g. facilitation, bookkeeping, design',hint:'Separate with commas.'}) : ''}${on('interests') ? fText('pe-int',lb('interests','Interests'),p.interests,{ph:'e.g. events, gardening',hint:'Separate with commas.'}) : ''}</div>
+  <div class="grid2">${on('joined') ? fDate('pe-joined',lb('joined','Joined on'),p.joined) : ''}${on('buddy') ? fText('pe-buddy',lb('buddy','Buddy'),p.buddy,{list:1,hint:'For new members: who helps them settle in.'}) : ''}</div>
+  ${pubCF.length ? `<fieldset class="fs"><legend>More about you</legend><div class="grid2">${pubCF.map(cfInput).join('')}</div></fieldset>` : ''}
+  ${contactOn.length ? `<fieldset class="fs"><legend>Contact</legend><p class="hint">Only people who can edit the workspace (Admins and Members) see contact details${mode==='supabase'?', plus the person themselves':''}. Fields marked * are required.</p>
+    <div class="grid3">${on('email') ? fText('pe-email',lb('email','Email'),ct.email) : ''}${on('phone') ? fText('pe-phone',lb('phone','Phone'),ct.phone) : ''}${on('channel') ? fText('pe-chan',lb('channel','Preferred channel'),ct.channel,{ph:'e.g. Signal, email'}) : ''}</div></fieldset>` : ''}
+  ${ecOn.length ? `<fieldset class="fs"><legend>Emergency contact</legend><p class="hint">Who to contact if something happens. Same visibility as contact details.</p>
+    <div class="grid2">${on('ecName') ? fText('pe-ecname',lb('ecName','Name and relationship'),ct.ecName,{ph:'e.g. Marta Puig, sister'}) : ''}${on('ecPhone') ? fText('pe-ecphone',lb('ecPhone','Phone'),ct.ecPhone) : ''}</div></fieldset>` : ''}
+  ${privCF.length ? `<fieldset class="fs"><legend>Private details</legend><p class="hint">Same visibility as contact details.</p><div class="grid2">${privCF.map(cfInput).join('')}</div></fieldset>` : ''}`;
   openModal(existing ? 'Edit profile' : (name ? 'Complete profile' : 'Add a person'), body, async () => {
     const nm = canRename ? gv('pe-name') : p.name; if(!nm){ toast('Add a name.'); return false; }
     const dup = personRec(nm); if(dup && dup.id !== p.id){ toast('Someone with this name already has a profile.'); return false; }
     const oldName = existing?.name || name || '';
-    const rec = {...p, name:nm, pronouns:gv('pe-pron'), photo:curPhoto||'', bio:gv('pe-bio'), skills:gv('pe-skills'), interests:gv('pe-int'), joined:gd('pe-joined'), buddy:gv('pe-buddy'), updated:todayISO()};
+    const keep = (k, id, v) => on(k) ? v(id) : (k === 'photo' ? p.photo : (p[k] ?? ''));
+    const rec = {...p, name:nm, pronouns:keep('pronouns','pe-pron',gv), photo:on('photo') ? (curPhoto||'') : (p.photo||''), bio:keep('bio','pe-bio',gv), skills:keep('skills','pe-skills',gv), interests:keep('interests','pe-int',gv), joined:keep('joined','pe-joined',gd), buddy:keep('buddy','pe-buddy',gv), updated:todayISO()};
     delete rec.availability;
+    const c2 = {}; [['email','pe-email'],['phone','pe-phone'],['channel','pe-chan'],['ecName','pe-ecname'],['ecPhone','pe-ecphone']].forEach(([k,id]) => { if(on(k)) c2[k] = gv(id); });
+    const cfVal = f => f.type === 'date' ? gd('cf-' + f.id) : gv('cf-' + f.id);
+    const pubVals = {...(p.custom||{})}, privVals = {...(ct.custom||{})};
+    pubCF.forEach(f => pubVals[f.id] = cfVal(f)); privCF.forEach(f => privVals[f.id] = cfVal(f));
+    const missing = [];
+    const chk = (k, label, v, id) => { if(on(k) && fieldRule(k) === 'req' && !v){ missing.push(label); const el = $('#'+id); if(el) el.classList.add('bad'); } };
+    chk('pronouns','Pronouns',rec.pronouns,'pe-pron'); chk('photo','Photo',rec.photo,'pp-file'); chk('bio','Short bio',rec.bio,'pe-bio'); chk('skills','Skills',rec.skills,'pe-skills'); chk('interests','Interests',rec.interests,'pe-int'); chk('joined','Joined on',rec.joined,'pe-joined'); chk('buddy','Buddy',rec.buddy,'pe-buddy');
+    chk('email','Email',c2.email,'pe-email'); chk('phone','Phone',c2.phone,'pe-phone'); chk('channel','Preferred channel',c2.channel,'pe-chan'); chk('ecName','Emergency contact name',c2.ecName,'pe-ecname'); chk('ecPhone','Emergency contact phone',c2.ecPhone,'pe-ecphone');
+    [...pubCF, ...privCF].forEach(f => { const v = f.private ? privVals[f.id] : pubVals[f.id]; if(f.req && !v){ missing.push(f.label); const el = $('#cf-' + f.id); if(el) el.classList.add('bad'); } });
+    if(missing.length) throw new Invalid('Please fill in: ' + missing.join(', ') + '.');
+    if(pubCF.length || p.custom) rec.custom = pubVals;
     if(!(await put('people', rec))) return false;
-    const c2 = {email:gv('pe-email'), phone:gv('pe-phone'), channel:gv('pe-chan'), ecName:gv('pe-ecname'), ecPhone:gv('pe-ecphone')};
-    if(Object.values(c2).some(Boolean) || S.contacts[p.id]) await put('contacts', {...ct, ...c2, id:p.id, example:!!p.example});
+    if(privCF.length) c2.custom = privVals;
+    if(Object.values(c2).some(v => v && (typeof v !== 'object' || Object.values(v).some(Boolean))) || S.contacts[p.id]) await put('contacts', {...ct, ...c2, id:p.id, example:!!p.example});
     if(oldName && oldName !== nm && canWrite) await renamePerson(oldName, nm);
     if(rec.ownerEmail && rec.ownerEmail === me.email) me.name = nm;
     toast('Profile saved'); location.hash = 'person-' + p.id; return true;
-  }, {wide:true, saveLabel:'Save profile', onDelete: canDelete ? async () => { await remove('people', p.id); if(S.contacts[p.id]) await remove('contacts', p.id); location.hash = 'people'; toast('Profile deleted. The name stays in circles and tasks.'); return true; } : null, deleteLabel:'Delete profile'});
+  }, {wide:true, saveLabel:'Save profile', onDelete: canDelete ? async () => { await remove('people', p.id); if(S.contacts[p.id]) await remove('contacts', p.id); location.hash = 'people'; toast(`Profile deleted. The name stays in ${tm('circles')} and tasks.`); return true; } : null, deleteLabel:'Delete profile'});
   if(!canRename) setTimeout(() => { const el = $('#pe-name'); if(el) el.disabled = true; }, 0);
 }
+
+
+/* ============ Date picker: click any date field for a calendar ============ */
+let dpEl = null, dpInput = null, dpView = null;
+const DP_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function dpOpen(input){
+  dpInput = input; const r = parseMDY(input.value); const today = new Date();
+  const base = r.ok && r.iso ? new Date(r.iso + 'T12:00:00') : today;
+  dpView = {y:base.getFullYear(), m:base.getMonth()};
+  if(!dpEl){ dpEl = document.createElement('div'); dpEl.className = 'dp'; dpEl.setAttribute('role','dialog'); dpEl.setAttribute('aria-label','Choose a date'); document.body.appendChild(dpEl); }
+  dpDraw(); dpPlace();
+}
+function dpPlace(){
+  if(!dpEl || !dpInput) return; const b = dpInput.getBoundingClientRect(); const h = dpEl.offsetHeight || 330, w = 272;
+  let top = b.bottom + 6; if(top + h > window.innerHeight - 8) top = Math.max(8, b.top - h - 6);
+  let left = Math.min(b.left, window.innerWidth - w - 8); left = Math.max(8, left);
+  dpEl.style.top = top + 'px'; dpEl.style.left = left + 'px';
+}
+function dpDraw(){
+  const {y, m} = dpView; const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const sel = parseMDY(dpInput.value); const selIso = sel.ok ? sel.iso : ''; const todayIso = iso(new Date());
+  const first = new Date(y, m, 1); const start = new Date(y, m, 1 - first.getDay());
+  let cells = ''; for(let i = 0; i < 42; i++){ const d = new Date(start); d.setDate(start.getDate() + i); const v = iso(d);
+    cells += `<button type="button" data-dp="${v}" class="${d.getMonth()!==m?'out':''} ${v===todayIso?'today':''} ${v===selIso?'sel':''}" aria-label="${mdy(v)}">${d.getDate()}</button>`; }
+  dpEl.innerHTML = `<div class="dp-h"><button type="button" data-dpnav="-1" aria-label="Previous month">‹</button><b>${DP_MONTHS[m]} ${y}</b><button type="button" data-dpnav="1" aria-label="Next month">›</button></div>
+    <div class="dp-g">${['Su','Mo','Tu','We','Th','Fr','Sa'].map(x => `<span>${x}</span>`).join('')}${cells}</div>
+    <div class="dp-f"><button type="button" data-dpset="today">Today</button><button type="button" data-dpset="clear">Clear</button></div>`;
+}
+function dpClose(){ if(dpEl){ dpEl.remove(); dpEl = null; } dpInput = null; }
+function dpSet(v){ if(!dpInput) return; dpInput.value = v ? mdy(v) : ''; dpInput.classList.remove('bad'); dpInput.dispatchEvent(new Event('change', {bubbles:true})); const i = dpInput; dpClose(); i.focus(); }
+document.addEventListener('mousedown', e => {
+  if(dpEl && dpEl.contains(e.target)){ e.preventDefault(); const t = e.target.closest('button'); if(!t) return;
+    if(t.dataset.dp) dpSet(t.dataset.dp);
+    else if(t.dataset.dpnav){ dpView.m += +t.dataset.dpnav; if(dpView.m < 0){ dpView.m = 11; dpView.y--; } if(dpView.m > 11){ dpView.m = 0; dpView.y++; } dpDraw(); }
+    else if(t.dataset.dpset === 'today') dpSet(todayISO()); else if(t.dataset.dpset === 'clear') dpSet('');
+    return; }
+  if(e.target.matches && e.target.matches('input.date')){ if(dpInput !== e.target) dpOpen(e.target); return; }
+  dpClose();
+}, true);
+document.addEventListener('focusin', e => { if(e.target.matches && e.target.matches('input.date') && dpInput !== e.target) dpOpen(e.target); else if(dpEl && !(e.target.matches && e.target.matches('input.date'))) dpClose(); });
+document.addEventListener('keydown', e => { if(dpEl && e.key === 'Escape'){ e.stopPropagation(); dpClose(); } }, true);
+document.addEventListener('input', e => { if(dpEl && e.target === dpInput){ const r = parseMDY(dpInput.value); if(r.ok && r.iso){ const d = new Date(r.iso + 'T12:00:00'); dpView = {y:d.getFullYear(), m:d.getMonth()}; } dpDraw(); } });
+window.addEventListener('scroll', () => dpPlace(), true);
+window.addEventListener('resize', () => dpPlace());
+window.addEventListener('hashchange', () => dpClose());
 
 /* ============ Double-link flow: send topics between circles ============ */
 const bText = b => typeof b === 'string' ? b : (b?.text || '');
@@ -2223,14 +2462,14 @@ function backlogHTML(b){
   if(typeof b === 'string') return esc(b);
   const [kind, rid] = (b.ref||'').split(':');
   const link = kind==='meeting' && S.meetings[rid] ? `<a href="#meeting-${rid}">minutes</a>` : kind==='proposal' && S.proposals[rid] ? `<a href="#proposal-${rid}">proposal</a>` : '';
-  return `<b>${esc(b.text)}</b>${b.note?`<div style="font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(b.note)}</div>`:''}<div class="bl-meta">From ${b.fromCircleId&&S.circles[b.fromCircleId]?`<a href="#circle-${b.fromCircleId}">${esc(circleName(b.fromCircleId))}</a>`:'another circle'}${b.by?` · brought by ${esc(b.by)}`:''}${b.date?` · <span class="mono">${mdy(b.date)}</span>`:''}${link?` · ${link}`:''}</div>`;
+  return `<b>${esc(b.text)}</b>${b.note?`<div style="font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(b.note)}</div>`:''}<div class="bl-meta">From ${b.fromCircleId&&S.circles[b.fromCircleId]?`<a href="#circle-${b.fromCircleId}">${esc(circleName(b.fromCircleId))}</a>`:`another ${tm('circle')}`}${b.by?` · brought by ${esc(b.by)}`:''}${b.date?` · <span class="mono">${mdy(b.date)}</span>`:''}${link?` · ${link}`:''}</div>`;
 }
 function sentHTML(list){ return (list||[]).filter(id=>S.circles[id]).map(id=>`<span class="sent">Sent to <a href="#circle-${id}-meetings">${esc(S.circles[id].name)}</a></span>`).join(''); }
 function linkTargets(circleId){
   const c = S.circles[circleId]; if(!c) return [];
   const out = [];
-  if(c.parentId && S.circles[c.parentId]) out.push({id:c.parentId, label:`${S.circles[c.parentId].name} (parent circle, via the delegate)`, carrier:c.roles?.delegate?.holder||''});
-  childrenOf(circleId).forEach(k => out.push({id:k.id, label:`${k.name} (sub-circle, via its leader)`, carrier:k.roles?.leader?.holder||''}));
+  if(c.parentId && S.circles[c.parentId]) out.push({id:c.parentId, label:`${S.circles[c.parentId].name} (parent ${tm('circle')}, via the ${tm('delegate')})`, carrier:c.roles?.delegate?.holder||''});
+  childrenOf(circleId).forEach(k => out.push({id:k.id, label:`${k.name} (sub-${tm('circle')}, via its ${tm('leader')})`, carrier:k.roles?.leader?.holder||''}));
   vals('circles').filter(o => o.id!==circleId && !out.some(x=>x.id===o.id)).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).forEach(o => out.push({id:o.id, label:o.name, carrier:''}));
   return out;
 }
@@ -2241,12 +2480,12 @@ function sendTo(d){
   const targets = linkTargets(src.circleId); if(!targets.length) return;
   const title = isAg ? a.title : src.title;
   const note = isAg ? ([a.outcome, a.takeaway].filter(Boolean).join('\n') || a.notes || '') : (src.driver || '');
-  const body = `<p class="muted" style="font-size:14px">The topic goes into the other circle's backlog, ready for a future agenda. Between linked circles, the delegate carries topics up to the parent circle and the leader carries them down to a sub-circle.</p>
+  const body = `<p class="muted" style="font-size:14px">The topic goes into the other ${tm('circle')}'s backlog, ready for a future agenda. Between linked ${tm('circles')}, the ${tm('delegate')} carries topics up to the parent ${tm('circle')} and the ${tm('leader')} carries them down to a sub-circle.</p>
     <label class="f"><span>Send to</span><select id="st-target">${targets.map(t=>`<option value="${t.id}" data-carrier="${esc(t.carrier)}">${esc(t.label)}</option>`).join('')}</select></label>
-    ${fText('st-by','Brought by',targets[0].carrier,{list:1,hint:'Filled in with the delegate or leader who links the two circles.'})}
+    ${fText('st-by','Brought by',targets[0].carrier,{list:1,hint:`Filled in with the ${tm('delegate')} or ${tm('leader')} who links the two ${tm('circles')}.`})}
     ${fText('st-text','Topic',title)}
-    ${fArea('st-note','Context for the other circle',note,{rows:4})}`;
-  openModal('Send to another circle', body, async () => {
+    ${fArea('st-note',`Context for the other ${tm('circle')}`,note,{rows:4})}`;
+  openModal(`Send to another ${tm('circle')}`, body, async () => {
     const tid = gv('st-target'), text = gv('st-text');
     if(!text){ toast('Add a topic.'); return false; }
     if(!S.circles[tid]) return false;
@@ -2265,17 +2504,17 @@ const rxEsc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function hl(text, terms){ text = String(text||''); if(!terms.length) return esc(text); const re = new RegExp('(' + terms.map(rxEsc).join('|') + ')', 'gi'); return text.split(re).map((p,i) => i % 2 ? `<mark>${esc(p)}</mark>` : esc(p)).join(''); }
 function snip(text, terms, len=200){ text = String(text||''); if(text.length <= len) return hl(text, terms); const l = text.toLowerCase(); let at = -1; terms.forEach(t => { const i = l.indexOf(t); if(i >= 0 && (at < 0 || i < at)) at = i; }); const start = Math.max(0, (at < 0 ? 0 : at) - 60); const piece = text.slice(start, start + len); return (start > 0 ? '…' : '') + hl(piece, terms) + (start + len < text.length ? '…' : ''); }
 function vSearch(){
-  return `<div class="head"><div class="t"><span class="eyebrow">Find</span><h1>Who decides?</h1><p>Search every circle's domain and aim, the policies in force, the wiki, community updates and meeting takeaways. The circle whose domain covers a topic is the one that decides it.</p></div></div>
+  return `<div class="head"><div class="t"><span class="eyebrow">Find</span><h1>Who decides?</h1><p>Search every ${tm('circle')}'s domain and aim, the policies in force, the wiki, community updates and meeting takeaways. The ${tm('circle')} whose domain covers a topic is the one that decides it.</p></div></div>
   <input id="q" class="bigsearch" value="${esc(searchQ)}" placeholder="e.g. room booking, budget, new members" aria-label="Search" autocomplete="off">
   <div id="results" style="display:flex;flex-direction:column;gap:18px">${searchResults()}</div>`;
 }
 function searchResults(){
   const terms = [...new Set(searchQ.trim().toLowerCase().split(/\s+/).filter(t => t.length > 1))];
   const circles = ordered().map(([c]) => c);
-  const ask = c => [c.roles?.leader?.holder && `Leader: ${esc(c.roles.leader.holder)}`, c.roles?.secretary?.holder && `Secretary: ${esc(c.roles.secretary.holder)}`].filter(Boolean).join(' · ');
+  const ask = c => [c.roles?.leader?.holder && `${tm('Leader')}: ${esc(c.roles.leader.holder)}`, c.roles?.secretary?.holder && `${tm('Secretary')}: ${esc(c.roles.secretary.holder)}`].filter(Boolean).join(' · ');
   if(!terms.length){
-    if(!circles.length) return emptyBox('No circles yet. Once circles have domains, you can search them here.');
-    return `<section class="panel"><div class="ph"><h2>Domains at a glance</h2></div><div class="tscroll"><table><thead><tr><th>Circle</th><th>Decides on</th><th>Who to ask</th></tr></thead><tbody>${circles.map(c=>`<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a></td><td style="white-space:pre-wrap">${esc(c.domain||'—')}</td><td>${ask(c)||'—'}</td></tr>`).join('')}</tbody></table></div></section>`;
+    if(!circles.length) return emptyBox(`No ${tm('circles')} yet. Once ${tm('circles')} have domains, you can search them here.`);
+    return `<section class="panel"><div class="ph"><h2>Domains at a glance</h2></div><div class="tscroll"><table><thead><tr><th>${tm('Circle')}</th><th>Decides on</th><th>Who to ask</th></tr></thead><tbody>${circles.map(c=>`<tr><td><a href="#circle-${c.id}"><b>${esc(c.name)}</b></a></td><td style="white-space:pre-wrap">${esc(c.domain||'—')}</td><td>${ask(c)||'—'}</td></tr>`).join('')}</tbody></table></div></section>`;
   }
   const score = fields => { const hit = new Set(); let s = 0; fields.forEach(([txt, w]) => { const l = String(txt||'').toLowerCase(); terms.forEach(t => { if(l.includes(t)){ hit.add(t); s += w; } }); }); return hit.size ? hit.size * 100 + s : 0; };
   const rank = (list, f) => list.map(x => [x, score(f(x))]).filter(x => x[1]).sort((a,b) => b[1]-a[1]).map(x => x[0]);
@@ -2284,10 +2523,10 @@ function searchResults(){
   const rn = rank(vals('notices'), n => [[n.title,3],[n.body,1]]);
   const rw = rank(vals('wiki'), w => [[w.title,3],[w.summary,2],[w.body,1]]);
   const rm = rank(vals('meetings'), m => [[m.takeaways,2],[(m.agenda||[]).map(a=>a.title+' '+(a.outcome||'')).join(' '),1]]);
-  if(!rc.length && !rp.length && !rn.length && !rm.length && !rw.length) return emptyBox(`Nothing matches “${esc(searchQ.trim())}”. If no circle's domain covers this topic, it belongs to the general circle until someone takes it on.`);
+  if(!rc.length && !rp.length && !rn.length && !rm.length && !rw.length) return emptyBox(`Nothing matches “${esc(searchQ.trim())}”. If no ${tm('circle')}'s domain covers this topic, it belongs to the general ${tm('circle')} until someone takes it on.`);
   const sec = (t, inner) => `<section class="panel"><div class="ph"><h2>${t}</h2></div>${inner}</section>`;
   let out = '';
-  if(rc.length) out += sec('Circles that may decide this', `<div class="list">${rc.map((c,i)=>`<div class="item"><div class="body"><div class="res-h"><a class="ttl" href="#circle-${c.id}">${esc(c.name)}</a>${i===0?'<span class="st ok">Best match</span>':''}</div><div><span class="eyebrow">Decides on</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${hl(c.domain||'No domain written yet.', terms)}</div></div>${c.aim?`<div class="muted" style="font-size:13.5px">Aim: ${snip(c.aim, terms)}</div>`:''}${ask(c)?`<div class="bl-meta">${ask(c)}</div>`:''}</div><div class="side">${typeChip(c.type)}</div></div>`).join('')}</div>`);
+  if(rc.length) out += sec(`${tm('Circles')} that may decide this`, `<div class="list">${rc.map((c,i)=>`<div class="item"><div class="body"><div class="res-h"><a class="ttl" href="#circle-${c.id}">${esc(c.name)}</a>${i===0?'<span class="st ok">Best match</span>':''}</div><div><span class="eyebrow">Decides on</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${hl(c.domain||'No domain written yet.', terms)}</div></div>${c.aim?`<div class="muted" style="font-size:13.5px">Aim: ${snip(c.aim, terms)}</div>`:''}${ask(c)?`<div class="bl-meta">${ask(c)}</div>`:''}</div><div class="side">${typeChip(c.type)}</div></div>`).join('')}</div>`);
   if(rp.length) out += sec('Policies in force', `<div class="list">${rp.map(p=>`<div class="item"><div class="body"><a class="ttl" href="#proposal-${p.id}">${hl(p.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(p.proposal||p.driver, terms)}</div><div class="bl-meta">${esc(circleName(p.circleId))}${p.decided?` · consented <span class="mono">${mdy(p.decided)}</span>`:''}</div></div></div>`).join('')}</div>`);
   if(rw.length) out += sec('Wiki pages', `<div class="list">${rw.slice(0,8).map(w=>`<div class="item"><div class="body"><a class="ttl" href="#wiki-${w.id}">${hl(w.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(w.summary || w.body, terms)}</div><div class="bl-meta">${esc(WCATS[w.category]||'')} · ${esc(circleName(w.circleId))}</div></div></div>`).join('')}</div>`);
   if(rn.length) out += sec('Community updates', `<div class="list">${rn.slice(0,8).map(n=>`<div class="item"><div class="body"><a class="ttl" href="#overview">${hl(n.title, terms)}</a><div class="muted" style="font-size:13.5px">${snip(n.body, terms)}</div><div class="bl-meta">${esc(circleName(n.circleId))} · <span class="mono">${mdy(n.date)}</span></div></div></div>`).join('')}</div>`);
@@ -2296,12 +2535,12 @@ function searchResults(){
 }
 
 /* ============ Role selection ============ */
-const DEFAULT_RESP = {
-  leader:'Keeps the operational overview of the circle, makes sure work moves forward, and links the circle to its parent circle.',
-  delegate:'Represents this circle in the parent circle as a full member, carries topics up, and reports back.',
+Object.defineProperty(window, 'DEFAULT_RESP', {get(){ return {
+  leader:`Keeps the operational overview of the ${tm('circle')}, makes sure work moves forward, and links the ${tm('circle')} to its parent ${tm('circle')}.`,
+  delegate:`Represents this ${tm('circle')} in the parent ${tm('circle')} as a full member, carries topics up, and reports back.`,
   facilitator:'Prepares and runs meetings, follows the meeting format, and guides consent and selection processes.',
-  secretary:'Prepares the agenda with the leader and facilitator, schedules meetings, writes and shares the minutes, and keeps the logbook current.'
-};
+  secretary:`Prepares the agenda with the ${tm('leader')} and ${tm('facilitator')}, schedules meetings, writes and shares the minutes, and keeps the logbook current.`
+}; }});
 let curSel = null, selChanges = {};
 function selButton(c, roleKey){
   const draft = vals('selections').find(s => s.circleId===c.id && s.roleKey===roleKey && s.status==='draft');
@@ -2335,7 +2574,7 @@ function renderPropose(defProp, defReason){
   const names = rows.map(r => r[0]); if(cur && !names.includes(cur)) names.push(cur);
   w.innerHTML = `${rows.length ? `<div class="tally">${rows.map(([name,v]) => `<div><div class="row" style="justify-content:space-between"><b>${esc(name)}</b><span class="mono">${v.n} nomination${v.n===1?'':'s'}</span></div><div class="bar" style="width:${Math.max(6, v.n/max*100)}%"></div>${v.why.length?`<div class="muted" style="font-size:13px">${v.why.map(esc).join(' · ')}</div>`:''}</div>`).join('')}</div>` : '<p class="muted">No nominations recorded yet.</p>'}
     <label class="f"><span>Proposed candidate</span><select id="sel-prop"><option value="">Choose…</option>${names.map(nm => `<option value="${esc(nm)}" ${nm===cur?'selected':''}>${esc(nm)}</option>`).join('')}</select></label>
-    ${fArea('sel-preason','Why the facilitator proposes this person',reason,{rows:3})}`;
+    ${fArea('sel-preason',`Why the ${tm('facilitator')} proposes this person`,reason,{rows:3})}`;
 }
 function readSel(base){
   const key = gv('sel-role'); let roleKey = key, roleTitle;
@@ -2371,9 +2610,9 @@ function editSelection(id, circleId, roleKey){
   const body = `
   <div class="seltabs">${steps.map((t,i) => `<button type="button" data-act="selStep" data-s="${i+1}" class="${i===0?'on':''}">${i+1}. ${t}</button>`).join('')}</div>
   <div class="selpanel" data-s="1">
-    <p class="muted" style="font-size:13.5px">Selecting for <b>${esc(c.name)}</b>. ${s.roleKey==='leader' && selC.id!==c.id ? `The leader is selected by the parent circle, <b>${esc(selC.name)}</b>, so its members make the nominations.` : 'The circle selects its own role holders.'}</p>
+    <p class="muted" style="font-size:13.5px">Selecting for <b>${esc(c.name)}</b>. ${s.roleKey==='leader' && selC.id!==c.id ? `The ${tm('leader')} is selected by the parent ${tm('circle')}, <b>${esc(selC.name)}</b>, so its members make the nominations.` : `The ${tm('circle')} selects its own role holders.`}</p>
     <div class="grid2"><label class="f"><span>Role</span><select id="sel-role">${roleOpts.map(([k,l]) => `<option value="${esc(k)}" ${k===selVal?'selected':''}>${esc(l)}</option>`).join('')}<option value="new" ${selVal==='new'?'selected':''}>A new role…</option></select></label>${fText('sel-newtitle','New role title (for a new role only)', isNew ? s.roleTitle : '', {ph:'e.g. Treasurer'})}</div>
-    <div class="grid3">${fDate('sel-date','Selection date',s.date)}${fText('sel-fac','Facilitator',s.facilitator,{list:1})}${fDate('sel-tend','Term ends',s.termEnd)}</div>
+    <div class="grid3">${fDate('sel-date','Selection date',s.date)}${fText('sel-fac',`${tm('Facilitator')}`,s.facilitator,{list:1})}${fDate('sel-tend','Term ends',s.termEnd)}</div>
     ${fArea('sel-resp','Responsibilities',s.responsibilities,{rows:4})}
     ${fArea('sel-qual','Qualifications',s.qualifications,{rows:2,ph:'Skills, time and experience the role needs'})}
     ${nav(0,2,'nominations')}
@@ -2390,7 +2629,7 @@ function editSelection(id, circleId, roleKey){
     ${nav(2,4,'proposal')}
   </div>
   <div class="selpanel" data-s="4" hidden>
-    <p class="muted" style="font-size:13.5px">The facilitator proposes a candidate based on the reasons given. The count is a guide, not a vote.</p>
+    <p class="muted" style="font-size:13.5px">The ${tm('facilitator')} proposes a candidate based on the reasons given. The count is a guide, not a vote.</p>
     <div id="propwrap" class="selpanel"></div>
     ${nav(3,5,'consent round')}
   </div>
@@ -2414,7 +2653,7 @@ async function completeSelection(){
   if(!s.proposed) throw new Invalid('Choose the proposed candidate in step 4.');
   if(s.objections.some(o => !o.resolved)) throw new Invalid('Integrate every objection, or mark it integrated, before completing.');
   if(!s.candidateConsented) throw new Invalid('The candidate consents last. Tick the box when they do.');
-  if(!S.circles[s.circleId]) throw new Invalid('This circle no longer exists.');
+  if(!S.circles[s.circleId]) throw new Invalid(`This ${tm('circle')} no longer exists.`);
   s.status = 'complete'; s.outcome = 'consented';
   const c = clone(S.circles[s.circleId]);
   const rec = {holder:s.proposed, selected:s.date, termEnd:s.termEnd};
@@ -2440,13 +2679,13 @@ async function completeSelection(){
 }
 function vSelection(id){
   const s = S.selections[id];
-  if(!s) return mode==='loading' ? '' : emptyBox('This selection record does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to circles</a>`);
+  if(!s) return mode==='loading' ? '' : emptyBox('This selection record does not exist or was deleted.', `<a class="btn sm" href="#circles">Back to ${tm('circles')}</a>`);
   const c = S.circles[s.circleId];
   const noms = s.nominations || [];
   const done = s.status === 'complete';
   const def = (t, v) => v ? `<div class="def"><span class="eyebrow">${t}</span><div class="txt">${esc(v)}</div></div>` : '';
   return `
-  <div class="head"><div class="t"><span class="eyebrow">Role selection · ${c?`<a href="#circle-${c.id}-logbook">${esc(c.name)}</a>`:'Deleted circle'}</span><h1>${esc(s.roleTitle || 'Role')}</h1>
+  <div class="head"><div class="t"><span class="eyebrow">Role selection · ${c?`<a href="#circle-${c.id}-logbook">${esc(c.name)}</a>`:`Deleted ${tm('circle')}`}</span><h1>${esc(s.roleTitle || 'Role')}</h1>
     <div class="row">${done?stChip('Selected by consent','ok'):stChip('In progress','warn')}<span class="muted" style="font-size:13.5px">Date <span class="mono">${mdy(s.date)}</span></span>${s.facilitator?`<span class="muted" style="font-size:13.5px">Facilitated by ${esc(s.facilitator)}</span>`:''}</div></div>
     <div class="row"><button class="btn ${done?'':'pri'} w" data-act="editSelection" data-id="${s.id}" type="button">${done?'Edit record':'Continue selection'}</button></div></div>
   ${done ? `<div class="takeaway"><b>Outcome</b>${esc(s.proposed)} was selected by consent${s.termEnd?` for a term ending ${mdy(s.termEnd)}`:''}.${s.proposalReason?`\n${esc(s.proposalReason)}`:''}</div>` : ''}
@@ -2461,7 +2700,7 @@ function vSelection(id){
 /* ============ Events ============ */
 let pendingDelete = false;
 const ACTS = {
-  closeModal, settings,
+  closeModal, settings: () => { location.hash = 'admin-workspace'; },
   newCircle: () => editCircle(null, route().match(/^circle-([a-z0-9]+?)(?:-|$)/)?.[1]),
   editCircle: d => editCircle(d.id),
   goCircle: d => { location.hash = 'circle-'+d.id; },
@@ -2530,6 +2769,15 @@ const ACTS = {
   addXRole: () => $('#xroles').insertAdjacentHTML('beforeend', xRoleRow()),
   removeRow: (d, el) => el.closest('.reprow').remove(),
   backlogRemove: async d => { const c = clone(S.circles[d.circle]); c.backlog = (c.backlog||[]).filter((_,i)=>i!==+d.i); await put('circles', c); },
+  saveWorkspace,
+  downloadData: () => downloadBackup(),
+  termPick: d => { $('#tm-circle').value = d.a; $('#tm-circles').value = d.b; const c = d.a === 'circle'; $('#tm-general').value = c ? 'General circle' : 'General ' + d.a; $('#tm-mission').value = c ? 'Mission circle' : 'Mission ' + d.a; $('#tm-department').value = c ? 'Department circle' : d.a === 'department' ? 'Department' : 'Department ' + d.a; $('#tm-helping').value = c ? 'Helping circle' : 'Helping ' + d.a; },
+  saveTerms: () => { const t = {}; ['circle','circles','general','mission','department','helping'].forEach(k => { const v = gv('tm-'+k); if(v) t[k] = v; }); if(t.circle === 'circle' && t.circles === 'circles' && t.general === TERM_DEFAULTS.general && t.mission === TERM_DEFAULTS.mission && t.department === TERM_DEFAULTS.department && t.helping === TERM_DEFAULTS.helping) return saveOrg({terms:{}}, 'Terminology saved'); return saveOrg({terms:t}, 'Terminology saved'); },
+  resetTerms: () => saveOrg({terms:{}}, 'Back to the sociocracy terms'),
+  saveRoles: () => { const n = {}, dsc = {}; ROLE_DEFAULTS.forEach(([k]) => { const a = gv('rn-'+k), b = gv('rd-'+k); if(a) n[k] = a; if(b) dsc[k] = b; }); return saveOrg({roleNames:n, roleDesc:dsc}, 'Roles saved'); },
+  saveFieldRules: () => { const f = {}; document.querySelectorAll('.fr-sel').forEach(el => f[el.dataset.k] = el.value); return saveOrg({fields:f}, 'Field settings saved'); },
+  editCustomField: d => editCustomField(d.id),
+  moveCustomField: d => { const l = clone(orgCfg().customFields||[]); const i = +d.i, j = i + (+d.d); if(j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; return saveOrg({customFields:l}, 'Order saved'); },
   exportData: async () => { const j = exportJSON(); $('#s-json').value = j; try{ await navigator.clipboard.writeText(j); toast('All data copied'); }catch(e){ $('#s-json').select(); toast('Data shown below. Select it and copy.'); } },
   importData,
   loadExamples, removeExamples,
@@ -2573,6 +2821,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('toggle', e => { if(e.target.matches && e.target.matches('details.mod[data-mod]')){ if(e.target.open) openMods.add(e.target.dataset.mod); else openMods.delete(e.target.dataset.mod); } }, true);
 document.addEventListener('toggle', e => { if(e.target.id === 'upcoming'){ upOpen = e.target.open; const h = e.target.querySelector('.up-hint'); if(h) h.textContent = upOpen ? 'Hide' : 'Show'; } }, true);
 document.addEventListener('change', e => {
+  if(e.target.id === 'cf-type'){ $('#cf-optwrap').hidden = e.target.value !== 'choice'; return; }
   if(e.target.id === 'prf-stage'){ propStage = e.target.value; render(); return; }
   if(e.target.id === 'prf-circle'){ propCircle = e.target.value; render(); return; }
   if(e.target.id === 'prf-aff'){ propAffects = e.target.value; render(); return; }
@@ -2610,6 +2859,7 @@ document.addEventListener('submit', e => {
   searchQ = (f.querySelector('input').value || '').trim(); location.hash = 'search';
 });
 document.addEventListener('input', e => {
+  if(e.target.classList && e.target.classList.contains('bad') && !e.target.matches('input.date')) e.target.classList.remove('bad');
   if(e.target.id === 'mp-filter'){ const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#mpick .mp').forEach(l => l.hidden = q && !l.dataset.n.includes(q)); return; }
   if(e.target.id === 'pq'){ peopleQ = e.target.value; const r = $('#people-list'); if(r) r.innerHTML = peopleList(); return; }
   if(e.target.id === 'wq'){ wikiQ = e.target.value; const r = $('#wiki-list'); if(r) r.innerHTML = wikiLists(); return; }

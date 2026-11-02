@@ -29,7 +29,7 @@ A free, open source workspace for organizations that use sociocracy. It is based
 4. **Set the sign-in address**: in Supabase, Authentication → URL Configuration, set **Site URL** to your GitHub Pages address and add it under **Redirect URLs**.
 5. **Set up email**: in Supabase, Authentication → Emails → SMTP Settings, connect an email account (for example Gmail with an app password). Supabase's built-in email only reaches members of your Supabase organization.
 6. **Edit `config.js`** on GitHub and paste your Supabase Project URL and publishable key.
-7. Open your site, sign in, and invite people from the **Access** page.
+7. Open your site, sign in, and invite people from **Admin → Access**.
 
 ## Permissions
 
@@ -43,7 +43,7 @@ The rules are enforced by the database (row level security), not only by the pag
 
 **Profiles:** each account is linked to one profile in People. Only that person or an admin can edit a linked profile. Emergency contacts are visible only to members and admins.
 
-**Private or public:** a new workspace is private, so nothing is visible without signing in. An admin can switch it to **Public, read-only** in Data & settings: anyone with the link can then read everything except contact details, and only invited people can sign in to edit.
+**Private or public:** a new workspace is private, so nothing is visible without signing in. An admin can switch it to **Public, read-only** in **Admin → Workspace**: anyone with the link can then read everything except contact details, and only invited people can sign in to edit.
 
 ## Contributing
 
