@@ -1076,6 +1076,9 @@ body.rail-collapsed .rail-mini{display:flex}
 .ps-track span{padding:4px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);font-weight:600}
 .ps-track span.done{background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ink)}
 .ps-track span.now{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.ps-track span.todo{background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font-weight:500}
+.ps-track span b{font-weight:800;margin-right:2px}
+.bp + .ps-story{margin-top:14px}
 .ps-track i{font-style:normal;color:var(--muted)}
 .ps-track .ps-of{background:transparent;margin-left:auto}
 .ps-story{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
@@ -1924,8 +1927,7 @@ function vProposal(id){
   if(p.questions) cards.push(card(3, '', txt(p.questions)));
   if(p.reactions) cards.push(card(4, '', txt(p.reactions)));
   if(objs.length || (p.stage === 'consented' && reached >= 6)) cards.push(card(5, '', objs.length ? `<div class="tscroll"><table><thead><tr><th>${T('Raised by')}</th><th>${T('Objection')}</th><th>${p.stage==='notconsented' ? T('What was tried') : T('How it was integrated')}</th><th></th></tr></thead><tbody>${objs.map(o => `<tr><td>${esc(o.by||'—')}</td><td>${esc(o.concern)}</td><td>${esc(o.resolution||'—')}</td><td>${o.resolved ? stChip(T('Resolved'),'ok') : stChip(p.stage==='notconsented' ? T('Not integrated') : T('Open'),'bad')}</td></tr>`).join('')}</tbody></table></div>` : `<p class="muted" style="margin:0">${T('No objections. Consent was given in the first round.')}</p>`));
-  const shown = labels.map((l, i) => ({l, i})).filter(({i}) => i < reached || (i === reached && !closed));
-  const track = `<div class="ps-track" aria-label="${esc(T('Progress'))}">${shown.map(({l, i}) => `<span class="${i < reached ? 'done' : 'now'}">${i < reached ? '✓' : '●'} ${esc(l)}</span>`).join('<i aria-hidden="true">›</i>')}${!closed && reached < 6 ? `<span class="ps-of">${T('Step {0} of {1}', [Math.min(reached + 1, 6), 6])}</span>` : ''}</div>`;
+  const track = `<div class="ps-track" aria-label="${esc(T('Progress'))}">${labels.map((l, i) => { const st = i < reached ? 'done' : (i === reached && !closed) ? 'now' : 'todo'; return `<span class="${st}" ${st === 'now' ? 'aria-current="step"' : ''}><b>${st === 'done' ? '✓' : i + 1}</b> ${esc(l)}</span>`; }).join('<i aria-hidden="true">›</i>')}${!closed && reached < 6 ? `<span class="ps-of">${T('Step {0} of {1}', [Math.min(reached + 1, 6), 6])}</span>` : ''}</div>`;
   const decided = p.stage==='consented' ? `<section class="panel" style="border-color:var(--ok)"><div class="ph"><h2>${T('Consented')}${p.decided?` · <span class="mono" style="font-size:15px">${mdy(p.decided)}</span>`:''}</h2>${canWrite ? `<div class="row"><button class="btn sm w" data-act="decide" data-id="${p.id}" data-v="consented" type="button">${T('Edit decision')}</button><button class="btn sm ghost w" data-act="undoDecision" data-id="${p.id}" type="button">${T('Clear decision')}</button></div>` : ''}</div>
     <div class="grid3"><div class="def"><span class="eyebrow">${T('Review by')}</span><div class="mono">${mdy(p.reviewDate)||'—'}</div></div><div class="def"><span class="eyebrow">${T('Decided in')}</span><div>${p.meetingId&&S.meetings[p.meetingId]?`<a href="#meeting-${p.meetingId}">${T('Meeting on {0}', [mdy(S.meetings[p.meetingId].date)])}</a>`:T('Not in a recorded meeting')}</div></div><div class="def"><span class="eyebrow">${T('Affects')}</span><div>${(p.affects||[]).includes('everyone') ? T('Everyone') : (p.affects||[]).filter(x=>S.circles[x]).map(cLink).join(', ') || '—'}</div></div></div></section>` : '';
   const notC = p.stage==='notconsented' ? (() => { const open = objs.filter(o=>!o.resolved); const fu = p.followUpId && S.proposals[p.followUpId]; return `<section class="panel" style="border-color:var(--bad)"><div class="ph"><h2>${T('Not consented')}${p.droppedOn?` · <span class="mono" style="font-size:15px">${mdy(p.droppedOn)}</span>`:''}</h2>${canWrite ? `<div class="row"><button class="btn sm w" data-act="decide" data-id="${p.id}" data-v="notconsented" type="button">${T('Edit decision')}</button><button class="btn sm ghost w" data-act="undoDecision" data-id="${p.id}" type="button">${T('Clear decision')}</button></div>` : ''}</div>
@@ -1941,8 +1943,8 @@ function vProposal(id){
   ${track}
   ${decided}${notC}
   ${p.basedOn && S.proposals[p.basedOn] ? `<p class="muted" style="font-size:14px">${T('A new approach to the same need as {0}, which was not consented.', [`<a href="#proposal-${p.basedOn}">${esc(S.proposals[p.basedOn].title)}</a>`])}</p>` : ''}
-  <div class="ps-story">${cards.join('')}</div>
   ${stepPanel(p, reached)}
+  <div class="ps-story">${cards.join('')}</div>
   ${p.meetingId&&S.meetings[p.meetingId]?`<p><a href="#meeting-${p.meetingId}">${T('See the minutes of the meeting where this was decided')}</a></p>`:''}`;
 }
 
