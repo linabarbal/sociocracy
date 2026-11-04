@@ -827,8 +827,8 @@ body.rail-collapsed .rail-mini{display:flex}
 .mw-days{display:flex;gap:6px;flex-wrap:wrap}
 .mw-d{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:8px 6px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-size:12px;font-weight:700}
 .mw-d i{font-style:normal;font-size:17px}
-.mw-d.ms-in{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--surface))}
-.mw-d.ms-plate{border-color:var(--info);background:color-mix(in srgb,var(--info) 16%,var(--surface))}
+.mw-d.ms-in{border-color:color-mix(in srgb,var(--mc) 70%,var(--surface));background:color-mix(in srgb,var(--mc) 30%,var(--surface))}
+.mw-d.ms-plate{border:1.5px dashed color-mix(in srgb,var(--mc) 80%,var(--ink));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mc) 32%,var(--surface)) 0 6px,var(--surface) 6px 11px)}
 .mw-d.ms-out{background:var(--sunk);color:var(--muted)}
 .ml-home{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin:0 0 6px;background:var(--surface)}
 .ml-home .ml-h-t{display:flex;gap:10px;align-items:center;text-decoration:none;color:var(--ink);flex:1;min-width:220px}
@@ -874,10 +874,11 @@ body.rail-collapsed .rail-mini{display:flex}
 .mlb .mb-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mlb .mb-i{flex:none}
 .mlb .mb-g{flex:none;font-size:11px;background:var(--surface);color:var(--ink);border-radius:999px;padding:0 6px}
-.mlb.ms-in{background:var(--ok);color:var(--bg);border-color:var(--ok)}
+.mlb{--mc:#8B8B93}
+.mlb.ms-in{background:color-mix(in srgb,var(--mc) 30%,var(--surface));color:var(--ink);border-color:color-mix(in srgb,var(--mc) 70%,var(--surface))}
 .mlb.ms-out{background:var(--sunk);color:var(--muted);border-color:var(--line);text-decoration:line-through;text-decoration-thickness:1px}
 .mlb.ms-out .mb-i,.mlb.ms-out .mb-g{text-decoration:none}
-.mlb.ms-plate{background:var(--info);color:var(--bg);border-color:var(--info)}
+.mlb.ms-plate{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mc) 32%,var(--surface)) 0 6px,var(--surface) 6px 11px);color:var(--ink);border:1.5px dashed color-mix(in srgb,var(--mc) 80%,var(--ink))}
 .mlb:disabled{cursor:default}
 .mlb.sm{width:auto;min-width:120px}
 .ml-home .mc-btns .mlb{width:auto;min-width:110px;padding:8px 12px;font-size:14px}
@@ -892,9 +893,9 @@ body.rail-collapsed .rail-mini{display:flex}
 .md-slot .ms-seg.big label > span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;font-size:18px}
 .md-slot .ms-seg.big label > span b{font-size:13px}
 .md-slot .ms-seg.big label + label{border-left:1px solid var(--line)}
-.md-slot .ms-seg.big label.ms-in:has(input:checked){background:var(--ok);color:var(--bg)}
+.md-slot .ms-seg.big label.ms-in:has(input:checked){background:color-mix(in srgb,var(--mc) 30%,var(--surface))}
 .md-slot .ms-seg.big label.ms-out:has(input:checked){background:var(--sunk)}
-.md-slot .ms-seg.big label.ms-plate:has(input:checked){background:var(--info);color:var(--bg)}
+.md-slot .ms-seg.big label.ms-plate:has(input:checked){background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--mc) 32%,var(--surface)) 0 6px,var(--surface) 6px 11px)}
 .md-slot .ms-seg.big label:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:-2px}
 .md-guests{display:flex;flex-direction:column;gap:10px;margin:10px 0}
 .gr{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
@@ -909,7 +910,7 @@ body.rail-collapsed .rail-mini{display:flex}
 .kv-t{display:flex;align-items:baseline;gap:10px}
 .kv-t h2{margin:0}
 .kv-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
-.kv-box.warn{border-color:color-mix(in srgb,var(--info) 55%,var(--line));background:color-mix(in srgb,var(--info) 7%,var(--surface))}
+.kv-box.warn{border:1.5px dashed var(--line);background:var(--sunk)}
 .kv-box.bad{border-color:#DC2626;background:color-mix(in srgb,#DC2626 5%,var(--surface))}
 .kv-box.bad .eyebrow{color:#DC2626}
 .kv-list summary{cursor:pointer;font-weight:700;padding:4px 0}
@@ -3047,7 +3048,9 @@ async function setMealUsual(p, sid, dow, st){
   pat[sid] = {...(pat[sid] || {}), [dow]:st}; if(st === 'in') delete pat[sid][dow];
   rec.meals.pattern = pat; await put('people', rec);
 }
-let mealWhoId = '', mealMonth = '';
+let mealWhoId = '', mealMonth = '', mealWeekOpen = false, kvListOpen = {};
+const MEAL_COLORS = ['#F59E42', '#4F8FEA', '#3FB27F', '#A78BFA', '#EC6FA6'];
+function slotColor(s){ if(s.color) return s.color; if(s.id === 'lunch') return MEAL_COLORS[0]; if(s.id === 'dinner') return MEAL_COLORS[1]; const i = slotList().findIndex(x => x.id === s.id); return MEAL_COLORS[(i < 0 ? 0 : i) % MEAL_COLORS.length]; }
 function mealWho(){
   const mine = myPerson();
   if(mealWhoId && S.people[mealWhoId] && (mode !== 'supabase' || isAdmin)) return S.people[mealWhoId];
@@ -3056,7 +3059,7 @@ function mealWho(){
 function mealBtn(p, s, date, edit){
   const st = mealState(p, s, date), e = mealEntry(p, s, date), g = guestsOf(e).length;
   const lbl = `${s.name}: ${MEAL_ST[st][0]}`;
-  return `<button type="button" class="mlb ms-${st}" ${edit ? `data-act="mealCycle" data-p="${p.id}" data-s="${s.id}" data-d="${date}"` : 'disabled'} title="${esc(lbl + (edit ? ' · ' + T('Tap to change') : ''))}" aria-label="${esc(lbl)}"><span class="mb-n">${esc(s.name)}</span><span class="mb-i" aria-hidden="true">${st === 'in' ? '✓' : MEAL_ST[st][1]}</span>${g ? `<span class="mb-g">+${g}</span>` : ''}</button>`;
+  return `<button type="button" class="mlb ms-${st}" style="--mc:${slotColor(s)}" ${edit ? `data-act="mealCycle" data-p="${p.id}" data-s="${s.id}" data-d="${date}"` : 'disabled'} title="${esc(lbl + (edit ? ' · ' + T('Tap to change') : ''))}" aria-label="${esc(lbl)}"><span class="mb-n">${esc(s.name)}</span><span class="mb-i" aria-hidden="true">${st === 'in' ? '✓' : MEAL_ST[st][1]}</span>${g ? `<span class="mb-g">+${g}</span>` : ''}</button>`;
 }
 function mealsHead(tab, extra){
   return `<div class="head"><div class="t"><span class="eyebrow">${T('Community')}</span><h1>${T('Meals')}</h1><p>${T('Everyone is counted for lunch and dinner unless they say otherwise. Tap once for not eating, twice to have a plate saved.')}</p></div><div class="row">${extra || ''}</div></div>
@@ -3097,8 +3100,8 @@ function mealCalendar(p){
 }
 function mealWeek(p){
   const sl = slotList(); const wd = WD(); const edit = canMealEdit(p);
-  return `<details class="panel mw"><summary><h2>${T('My usual week')}</h2><span class="muted">${T('Repeats every week. Changes in the calendar above are for one day only.')}</span></summary>
-    <div class="ml-week">${sl.map(s => `<div class="mw-row"><span class="mw-name"><b>${esc(s.name)}</b><span class="bl-meta">${esc(mealTime(s))}</span></span><div class="mw-days">${[1,2,3,4,5,6,0].filter(d => (s.days||[]).includes(d)).map(d => { const st = mealUsual(p, s, d); return `<button type="button" class="mw-d ms-${st}" ${edit ? `data-act="mealUsual" data-p="${p.id}" data-s="${s.id}" data-w="${d}"` : 'disabled'} title="${esc(wd[d] + ': ' + MEAL_ST[st][0])}" aria-label="${esc(wd[d] + ': ' + MEAL_ST[st][0])}"><span>${esc(wd[d])}</span><i aria-hidden="true">${st === 'in' ? '✓' : MEAL_ST[st][1]}</i></button>`; }).join('')}</div></div>`).join('')}</div></details>`;
+  return `<details class="panel mw" ${mealWeekOpen ? 'open' : ''}><summary><h2>${T('My usual week')}</h2><span class="muted">${T('Repeats every week. Changes in the calendar above are for one day only.')}</span></summary>
+    <div class="ml-week">${sl.map(s => `<div class="mw-row"><span class="mw-name"><b>${esc(s.name)}</b><span class="bl-meta">${esc(mealTime(s))}</span></span><div class="mw-days">${[1,2,3,4,5,6,0].filter(d => (s.days||[]).includes(d)).map(d => { const st = mealUsual(p, s, d); return `<button type="button" class="mw-d ms-${st}" style="--mc:${slotColor(s)}" ${edit ? `data-act="mealUsual" data-p="${p.id}" data-s="${s.id}" data-w="${d}"` : 'disabled'} title="${esc(wd[d] + ': ' + MEAL_ST[st][0])}" aria-label="${esc(wd[d] + ': ' + MEAL_ST[st][0])}"><span>${esc(wd[d])}</span><i aria-hidden="true">${st === 'in' ? '✓' : MEAL_ST[st][1]}</i></button>`; }).join('')}</div></div>`).join('')}</div></details>`;
 }
 function guestRow(g, i){
   return `<div class="gr" data-i="${i}"><div class="gr-h"><b>${T('Guest {0}', [i + 1])}</b><button type="button" class="btn sm ghost" data-act="mealGuestDel" aria-label="${esc(T('Remove this guest'))}">✕</button></div>
@@ -3109,7 +3112,7 @@ function mealDayModal(pid, date){
   const p = S.people[pid]; if(!p) return;
   const sl = slotList().filter(s => slotOn(s, date));
   const body = sl.map(s => { const st = mealState(p, s, date), gs = guestsOf(mealEntry(p, s, date));
-    return `<fieldset class="fs md-slot" data-s="${s.id}"><legend>${esc(s.name)} · ${esc(mealTime(s))}</legend>
+    return `<fieldset class="fs md-slot" data-s="${s.id}" style="--mc:${slotColor(s)}"><legend>${esc(s.name)} · ${esc(mealTime(s))}</legend>
       <div class="ms-seg big" role="radiogroup">${['in','out','plate'].map(k => `<label class="ms-${k}"><input type="radio" name="md-${s.id}" value="${k}" ${st===k?'checked':''}><span><span aria-hidden="true">${k === 'in' ? '✓' : MEAL_ST[k][1]}</span><b>${esc(MEAL_ST[k][0])}</b></span></label>`).join('')}</div>
       <div class="md-guests">${gs.map(guestRow).join('')}</div>
       <button type="button" class="btn sm" data-act="mealGuestAdd" data-s="${s.id}">+ ${T('Add a guest')}</button></fieldset>`; }).join('');
@@ -3141,7 +3144,7 @@ function mealKitchen(date){
       ${alRows ? `<div class="kv-box bad"><span class="eyebrow">⚠️ ${T('Allergies')}</span>${alRows}</div>` : ''}
       ${dietRows ? `<div class="kv-box"><span class="eyebrow">${T('Food needs')}</span>${dietRows}</div>` : ''}
       ${c.guests.length ? `<div class="kv-box"><span class="eyebrow">👥 ${T('Guests')}</span>${c.guests.map(g => `<div class="ml-diet"><span>${esc(T('Guest of {0}', [g.host]))}</span><span></span><span>${foodChips(g, false) || `<span class="muted">${T('No special needs')}</span>`}</span></div>`).join('')}</div>` : ''}
-      <details class="kv-list" open><summary>${T('Who is coming')} <span class="muted">${c.in.length + c.plate.length}</span></summary>${[...c.in, ...c.plate].map(row).join('')}${c.out.length ? `<div class="ml-grp"><h3>${T('Not eating')} <span class="muted">${c.out.length}</span></h3>${c.out.map(row).join('')}</div>` : ''}</details>
+      <details class="kv-list" data-kv="${s.id}" ${kvListOpen[s.id] === false ? '' : 'open'}><summary>${T('Who is coming')} <span class="muted">${c.in.length + c.plate.length}</span></summary>${[...c.in, ...c.plate].map(row).join('')}${c.out.length ? `<div class="ml-grp"><h3>${T('Not eating')} <span class="muted">${c.out.length}</span></h3>${c.out.map(row).join('')}</div>` : ''}</details>
     </section>`; };
   return nav + `<div class="kv-grid">${sl.map(cardFor).join('')}</div>`;
 }
@@ -3585,6 +3588,7 @@ document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase(), t = k === 'b' ? 'bold' : k === 'i' ? 'italic' : k === 'k' ? 'link' : null;
   if(t){ e.preventDefault(); mdApply(ta, t); }
 });
+document.addEventListener('toggle', e => { const t = e.target; if(!t || !t.classList) return; if(t.classList.contains('mw')) mealWeekOpen = t.open; if(t.classList.contains('kv-list')) kvListOpen[t.dataset.kv] = t.open; }, true);
 document.addEventListener('change', e => { if(e.target && e.target.id === 'ml-who'){ mealWhoId = e.target.value; render(); } });
 const fmtHelp = `<details class="fmt"><summary>${T('Formatting help')}</summary><div class="tscroll"><table><tbody>
   <tr><td><code>## Heading</code>, <code>### Smaller heading</code></td><td>${T('Section headings')}</td></tr>
